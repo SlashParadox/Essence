@@ -1,0 +1,16 @@
+{
+  "name": "com.slashparadox.essence",
+  "version": "0.0.1",
+  "displayName": "Essence",
+  "description": "Essence is a C# and Unity toolkit.",
+  "unity": "2022.2",
+  "keywords": [
+    "tenor",
+    "csharp",
+    "essence"
+  ],
+  "author": {
+    "name": "SlashParadox",
+    "url": "https://github.com/SlashParadox"
+  }
+}
