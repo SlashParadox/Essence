@@ -1,6 +1,6 @@
 // Copyright (c) Craig Williams, SlashParadox
 
-#if UNITY_64
+#if UNITY_2019_1_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;

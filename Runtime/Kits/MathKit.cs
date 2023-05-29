@@ -529,7 +529,7 @@ namespace SlashParadox.Essence.Kits
             return double.IsInfinity(value) || double.IsNaN(value);
         }
 
-#if UNITY_64
+#if UNITY_2019_1_OR_NEWER
         /// <summary>
         /// Clamps a <see cref="UnityEngine.Vector2"/> value.
         /// </summary>
