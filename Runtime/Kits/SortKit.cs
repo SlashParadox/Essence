@@ -11,9 +11,6 @@ namespace SlashParadox.Essence.Kits
     /// </summary>
     public static class SortKit
     {
-        /// <summary>The array run size for a Tim Sort.</summary>
-        private static readonly int TimSortRun = 32;
-        
         /// <summary>
         /// Checks if a collection is sorted, via a Linear Method.
         /// </summary>

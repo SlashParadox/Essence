@@ -47,9 +47,12 @@ namespace SlashParadox.Essence.Editor
         /// <summary>The initial position of the mouse at the start of a drag.</summary>
         private static Vector2 _dragStartPosition = Vector2.zero;
 
+        private static readonly FieldInfo SerializedObjectPtrInfo;
+
         static EditorKit()
         {
             ScrollableTextAreaInternalMethod = typeof(EditorGUI).GetMethod("ScrollableTextAreaInternal", ReflectionKit.DefaultFlags);
+            SerializedObjectPtrInfo = typeof(SerializedObject).GetField("m_NativeObjectPtr", ReflectionKit.DefaultFlags);
         }
 
         /// <summary>
@@ -229,6 +232,14 @@ namespace SlashParadox.Essence.Editor
             scrollPosition = (Vector2)parameters[2];
 
             return outValue;
+        }
+
+        public static bool IsSerializedObjectDisposed(SerializedObject serializedObject)
+        {
+            if (serializedObject == null)
+                return true;
+
+            return SerializedObjectPtrInfo == null || (IntPtr)SerializedObjectPtrInfo.GetValue(serializedObject) == IntPtr.Zero;
         }
     }
 }

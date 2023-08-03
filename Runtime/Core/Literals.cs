@@ -24,5 +24,11 @@ namespace SlashParadox.Essence
         
         /// <summary>The maximum amount of bits usable to create a secure double.</summary>
         public static readonly int MaxSecureDoubleBits = 53;
+
+        /// <summary>The directory to the Unity Resources folder.</summary>
+        public static readonly string ResourcesDirectory = "Resources/";
+
+        /// <summary>The file type name for unity assets.</summary>
+        public static readonly string AssetFileType = ".asset";
     }
 }

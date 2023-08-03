@@ -5,23 +5,23 @@ using UnityEngine;
 
 namespace SlashParadox.Essence
 {
+    public delegate void BehaviourEvent(MonoBehaviour behaviour);
+
+    public delegate void BehaviourEnabledEvent(MonoBehaviour behaviour, bool enabled);
+    
     /// <summary>
     /// An enhanced <see cref="MonoBehaviour"/> script.
     /// </summary>
     public class EssenceBehaviour : MonoBehaviour
     {
-        public delegate void BehaviorEvent(MonoBehaviour behaviour);
-
-        public delegate void EnabledEvent(MonoBehaviour behaviour, bool enabled);
-
         /// <summary>An event invoked upon starting.</summary>
-        public event BehaviorEvent OnStarted;
+        public event BehaviourEvent OnStarted;
 
         /// <summary>An event invoked upon being enabled or disabled.</summary>
-        public event EnabledEvent OnEnabledUpdated;
+        public event BehaviourEnabledEvent OnEnabledUpdated;
 
         /// <summary>An event invoked upon destruction.</summary>
-        public event BehaviorEvent OnDestroyed;
+        public event BehaviourEvent OnDestroyed;
 
         protected virtual void Start()
         {

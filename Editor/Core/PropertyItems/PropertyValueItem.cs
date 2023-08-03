@@ -13,7 +13,7 @@ namespace SlashParadox.Essence.Editor
     public abstract class PropertyValueItem<T> : PropertyItem
     {
         /// <summary>The value being used and displayed in this property.</summary>
-        public EditorValue<T> Value;
+        public virtual EditorValue<T> Value { get; set; }
         
         protected PropertyValueItem() { }
         

@@ -1,7 +1,6 @@
+// Copyright (c) Craig Williams, SlashParadox
+
 using System;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 
 namespace SlashParadox.Essence.Kits
 {
@@ -17,6 +16,21 @@ namespace SlashParadox.Essence.Kits
         {
             if (statement)
                 throw new NullReferenceException(message);
+        }
+
+        public static bool LogIfFalse(bool statement, string message = null)
+        {
+            if (statement)
+                return true;
+
+#if UNITY_2019_1_OR_NEWER
+            UnityEngine.Debug.LogWarning(message);
+#else
+            if (!string.IsNullOrEmpty(message))
+                System.Diagnostics.Debug.Print(message);
+#endif
+
+            return false;
         }
     }
 }

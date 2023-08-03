@@ -17,12 +17,14 @@ namespace SlashParadox.Essence.Editor
         /// <summary>The default <see cref="PropertyDrawer"/>, from the <see cref="EditorCache"/>.</summary>
         protected PropertyDrawer DefaultDrawer { get; private set; }
 
+        private SerializedObject _serializedObject;
+
         public sealed override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             if (position.width <= 1)
                 return;
 
-            if (!IsInitialized)
+            if (!IsInitialized || EditorKit.IsSerializedObjectDisposed(_serializedObject))
                 InitializeDrawer(property, label);
 
             OnGUIDraw(position, property, label);
@@ -35,6 +37,7 @@ namespace SlashParadox.Essence.Editor
         /// <param name="label">The <see cref="GUIContent"/> being drawn.</param>
         private void InitializeDrawer(SerializedProperty property, GUIContent label)
         {
+            _serializedObject = property.serializedObject;
             DefaultDrawer = EditorCache.GetPropertyDrawer(property);
             OnDrawerInitialized(property, label);
             IsInitialized = true;

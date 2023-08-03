@@ -1,6 +1,9 @@
 // Copyright (c) Craig Williams, SlashParadox
 
 #if UNITY_2019_1_OR_NEWER
+using System.Reflection;
+using SlashParadox.Essence.Kits;
+using UnityEditor;
 using UnityEngine;
 
 namespace SlashParadox.Essence.Editor
@@ -11,6 +14,19 @@ namespace SlashParadox.Essence.Editor
     /// </summary>
     public class GenericPropertyItem : PropertyValueItem<object>
     {
+        public override EditorValue<object> Value
+        {
+            get
+            {
+                return base.Value;
+            }
+            set
+            {
+                base.Value = value;
+                BuildGenericPropertyItem();
+            }
+        }
+
         /// <summary>The <see cref="VerticalPropertyGroup"/> to place items into.</summary>
         private VerticalPropertyGroup _vGroup;
 
@@ -34,14 +50,23 @@ namespace SlashParadox.Essence.Editor
 
         protected override object OnDraw(ref Rect drawRect)
         {
+            if (Value?.SProperty != null)
+            {
+                EditorGUI.PropertyField(drawRect, Value.SProperty, Label?.ConditionalLabel, true);
+                return Value.LastResult;
+            }
+            
             _vGroup?.Draw(ref drawRect);
             
-            Value.SetLatestResult(Value.GetCurrentValue());
-            return Value.LastResult;
+            Value?.SetLatestResult(Value?.GetCurrentValue());
+            return Value?.LastResult;
         }
 
         public override float GetHeight()
         {
+            if (Value?.SProperty != null)
+                return EditorGUI.GetPropertyHeight(Value.SProperty, Label?.ConditionalLabel);
+
             return _vGroup?.GetHeight() ?? 0.0f;
         }
 
@@ -50,6 +75,10 @@ namespace SlashParadox.Essence.Editor
         /// </summary>
         private void BuildGenericPropertyItem()
         {
+            // Don't draw serialized properties. We just use the normal property fields for them.
+            if (Value?.SProperty != null)
+                return;
+            
             _vGroup = new VerticalPropertyGroup();
             _vGroup.AddItem(GetDrawerItemForValue(Value, Label));
         }
@@ -60,19 +89,45 @@ namespace SlashParadox.Essence.Editor
         /// <param name="inValue">The value to find the <see cref="PropertyItem"/> for.</param>
         /// <param name="inLabel">The <see cref="PropertyLabel"/> for the item.</param>
         /// <returns></returns>
-        private PropertyItem GetDrawerItemForValue(EditorValue<object> inValue, PropertyLabel inLabel)
+        private IDrawerItem GetDrawerItemForValue(EditorValue<object> inValue, PropertyLabel inLabel)
         {
-            PropertyItem valueItem = EditorCache.GetPropertyItem<PropertyItem>(inValue.GetVariableType());
-            if (valueItem == null)
+            // If we can find a proper property item, use it. Otherwise, dive deeper.
+            System.Type variableType = inValue?.GetVariableType();
+            if (variableType == null)
                 return null;
-
-            System.Type valueType = inValue.GetVariableType();
             
+            PropertyItem valueItem = EditorCache.GetPropertyItem<PropertyItem>(variableType);
+            if (valueItem != null)
+            {
+                valueItem.ApplyGenericEditorValue(inValue);
+                valueItem.Label = inLabel;
 
-            valueItem.ApplyGenericEditorValue(inValue);
-            valueItem.Label = inLabel;
+                return valueItem;
+            }
 
-            return valueItem;
+            VerticalPropertyGroup propertyGroup = new VerticalPropertyGroup();
+            propertyGroup.Label = new FoldoutPropertyLabel(inLabel?.ConditionalLabel, inLabel?.Style);
+
+            // Get the member info of the inner variables, and find a drawer for each.
+            MemberInfo[] members = variableType.GetMembers(ReflectionKit.DefaultFlags);
+            foreach (MemberInfo member in members)
+            {
+                FieldInfo field = member as FieldInfo;
+                if (field == null)
+                    continue;
+                
+                // Only show the member if public or previewed.
+                if (!field.IsPublic && field.GetCustomAttribute<PreviewAttribute>() == null)
+                    continue;
+
+                EditorValue<object> newValue = new EditorValue<object>(true, inValue.GetCurrentValue(), field);
+                GUIContent newLabel = new GUIContent(field.Name, EditorCache.TryFindTooltip(field));
+                PropertyLabel newPropLabel = new NormalPropertyLabel(newLabel);
+                propertyGroup.AddItem(GetDrawerItemForValue(newValue, newPropLabel));
+                
+            }
+
+            return propertyGroup.GetItemCount() > 0 ? propertyGroup : null;
         }
     }
 }

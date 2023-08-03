@@ -44,14 +44,8 @@ namespace SlashParadox.Essence.Editor
             foreach (MemberInfo member in members)
             {
                 EditorValue<object> objValue = new EditorValue<object>(true, property.serializedObject.targetObject, member);
-                PropertyItem item = EditorCache.GetPropertyItem<PropertyItem>(objValue.GetVariableType());
-                if (item == null)
-                    return;
-
-                item.ApplyGenericEditorValue(objValue);
-
                 GUIContent itemLabel = new GUIContent(objValue.GetVariableName(), EditorCache.TryFindTooltip(member));
-                item.Label = new NormalPropertyLabel(itemLabel);
+                PropertyItem item = new GenericPropertyItem(objValue, itemLabel);
 
                 VGroup.AddItem(item);
             }

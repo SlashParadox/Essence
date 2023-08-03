@@ -9,7 +9,10 @@ namespace SlashParadox.Essence
     /// </summary>
     public class PreviewAttribute : GatherableAttribute
     {
-        public PreviewAttribute(int sortOrder = 0, string group = null)
+        public PreviewAttribute()
+            : base() { }
+        
+        public PreviewAttribute(int sortOrder, string group = null)
             : base(sortOrder, group) { }
     }
 }

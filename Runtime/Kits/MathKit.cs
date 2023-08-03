@@ -400,7 +400,7 @@ namespace SlashParadox.Essence.Kits
                    value.M43 >= min.M43 && value.M43 <= max.M43 &&
                    value.M44 >= min.M44 && value.M44 <= max.M44;
         }
-        
+
         /// <summary>
         /// Finds the minimum value within a collection.
         /// </summary>
@@ -424,7 +424,7 @@ namespace SlashParadox.Essence.Kits
 
             return min;
         }
-        
+
         /// <summary>
         /// Finds the minimum value within a collection.
         /// </summary>
@@ -472,7 +472,7 @@ namespace SlashParadox.Essence.Kits
 
             return max;
         }
-        
+
         /// <summary>
         /// Finds the maximum value within a collection.
         /// </summary>
@@ -658,6 +658,17 @@ namespace SlashParadox.Essence.Kits
                    value.m31 >= min.m31 && value.m31 <= max.m31 &&
                    value.m32 >= min.m32 && value.m32 <= max.m32 &&
                    value.m33 >= min.m33 && value.m33 <= max.m33;
+        }
+
+        /// <summary>
+        /// Finds the midpoint between two <see cref="UnityEngine.Vector3"/>s.
+        /// </summary>
+        /// <param name="a">The first point.</param>
+        /// <param name="b">The second point.</param>
+        /// <returns>Returns the midpoint of <paramref name="a"/> and <paramref name="b"/>.</returns>
+        public static UnityEngine.Vector3 Midpoint(UnityEngine.Vector3 a, UnityEngine.Vector3 b)
+        {
+            return a + (b - a) * 0.5f;
         }
 #endif
     }

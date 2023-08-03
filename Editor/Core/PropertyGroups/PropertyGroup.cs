@@ -122,6 +122,15 @@ namespace SlashParadox.Essence.Editor
         }
 
         /// <summary>
+        /// Gets the number of <see cref="IDrawerItem"/>s contained.
+        /// </summary>
+        /// <returns>Returns the number of <see cref="IDrawerItem"/>s contained.</returns>
+        public float GetItemCount()
+        {
+            return DrawerItems.Count;
+        }
+
+        /// <summary>
         /// An event when a <see cref="IDrawerItem"/> is added to the group.
         /// </summary>
         /// <param name="item">The new <see cref="IDrawerItem"/>.</param>

@@ -14,7 +14,7 @@ namespace SlashParadox.Essence
         /// <summary>If true, the property is only read-only in Play Mode.</summary>
         public bool PlayModeOnly { get; }
 #endif
-        
+
         public ReadOnlyAttribute()
         {
 #if UNITY_EDITOR
