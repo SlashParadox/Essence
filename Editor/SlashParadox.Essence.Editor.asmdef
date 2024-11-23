@@ -2,7 +2,7 @@
     "name": "SlashParadox.Essence.Editor",
     "rootNamespace": "SlashParadox.Essence.Editor",
     "references": [
-        "GUID:13d2c7cadd64be747b2dbf41926cbf92"
+        "SlashParadox.Essence"
     ],
     "includePlatforms": [
         "Editor"
@@ -12,7 +12,9 @@
     "overrideReferences": false,
     "precompiledReferences": [],
     "autoReferenced": true,
-    "defineConstraints": [],
+    "defineConstraints": [
+        "UNITY_EDITOR"
+    ],
     "versionDefines": [],
     "noEngineReferences": false
 }

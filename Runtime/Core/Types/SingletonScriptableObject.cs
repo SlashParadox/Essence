@@ -51,7 +51,7 @@ namespace SlashParadox.Essence
         private static bool _wasCreatedAtRuntime;
 
         /// <summary>The current instance of the <see cref="SingletonScriptableObject{T}"/>.</summary>
-        protected static T CurrentSingleton { get { return _currentSingleton; } }
+        protected static T CurrentSingleton { get { return GetOrCreateInstance(); } }
 
         protected virtual void Awake()
         {
@@ -88,6 +88,7 @@ namespace SlashParadox.Essence
             return typeof(T).GetCustomAttribute<ScriptableSingletonAttribute>(true);
         }
 
+        // ReSharper disable Unity.PerformanceAnalysis
         /// <summary>
         /// Gets the <see cref="_currentSingleton"/>, or attempts to create a new instance.
         /// </summary>

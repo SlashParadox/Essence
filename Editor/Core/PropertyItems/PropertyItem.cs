@@ -26,7 +26,9 @@ namespace SlashParadox.Essence.Editor
         /// <summary>The initial <see cref="Rect"/> before drawing.</summary>
         protected Rect InitialRect { get; private set; }
 
-        public float SpaceWeight { get; set; } = 100;
+        public float Weight { get; set; } = 100;
+        
+        public bool IsFixedWeight { get; set; }
 
         public int IndentAmount { get; set; }
 

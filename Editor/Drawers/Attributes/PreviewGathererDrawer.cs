@@ -51,7 +51,7 @@ namespace SlashParadox.Essence.Editor
             }
         }
 
-        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label)
+        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label, PropertyDrawerData data)
         {
             bool enabled = GUI.enabled;
             GUI.enabled = false;

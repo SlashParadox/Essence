@@ -136,6 +136,35 @@ namespace SlashParadox.Essence.Kits
             FieldInfo info = GetFieldInfo(obj, flags, path);
             return info?.FieldType;
         }
+        
+        /// <summary>
+        /// Gets a given type's <see cref="FieldInfo"/>, given a <paramref name="propertyName"/>. This variant is for static variables.
+        /// </summary>
+        /// <param name="propertyName">The name of the field being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <typeparam name="T">The type being searched.</typeparam>
+        /// <returns>Returns the found <see cref="FieldInfo"/>, if available.</returns>
+        public static FieldInfo GetFieldInfo<T>(string propertyName, BindingFlags flags)
+        {
+            flags |= BindingFlags.Static; // Ensure there's a static flag, otherwise this is pointless.
+            Type type = typeof(T);
+            return type.GetField(propertyName, flags);
+        }
+
+        /// <summary>
+        /// Gets a given type's <see cref="FieldInfo"/>, given a <paramref name="propertyName"/>. This variant is for static variables.
+        /// </summary>
+        /// <param name="type">The type being searched.</param>
+        /// <param name="propertyName">The name of the field being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <returns>Returns the found <see cref="FieldInfo"/>, if available.</returns>
+        public static FieldInfo GetFieldInfo(Type type, string propertyName, BindingFlags flags)
+        {
+            flags |= BindingFlags.Static; // Ensure there's a static flag, otherwise this is pointless.
+
+            FieldInfo[] fields = type?.GetFields(flags);
+            return type?.GetField(propertyName, flags);
+        }
 
         /// <summary>
         /// Gets an object's <see cref="FieldInfo"/>, given a <paramref name="path"/>.
@@ -246,6 +275,33 @@ namespace SlashParadox.Essence.Kits
         {
             PropertyInfo info = GetPropertyInfo(obj, flags, path);
             return info?.PropertyType;
+        }
+        
+        /// <summary>
+        /// Gets a given type's <see cref="PropertyInfo"/>, given a <paramref name="propertyName"/>. This variant is for static variables.
+        /// </summary>
+        /// <param name="propertyName">The name of the property being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <typeparam name="T">The type being searched.</typeparam>
+        /// <returns>Returns the found <see cref="PropertyInfo"/>, if available.</returns>
+        public static PropertyInfo GetPropertyInfo<T>(string propertyName, BindingFlags flags)
+        {
+            flags |= BindingFlags.Static; // Ensure there's a static flag, otherwise this is pointless.
+            Type type = typeof(T);
+            return type.GetProperty(propertyName, flags);
+        }
+
+        /// <summary>
+        /// Gets a given type's <see cref="PropertyInfo"/>, given a <paramref name="propertyName"/>. This variant is for static variables.
+        /// </summary>
+        /// <param name="type">The type being searched.</param>
+        /// <param name="propertyName">The name of the property being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <returns>Returns the found <see cref="PropertyInfo"/>, if available.</returns>
+        public static PropertyInfo GetPropertyInfo(Type type, string propertyName, BindingFlags flags)
+        {
+            flags |= BindingFlags.Static; // Ensure there's a static flag, otherwise this is pointless.
+            return type?.GetProperty(propertyName, flags);
         }
 
         /// <summary>
@@ -377,6 +433,66 @@ namespace SlashParadox.Essence.Kits
         }
 
         /// <summary>
+        /// Gets a given type's <see cref="MethodInfo"/>, given a <paramref name="methodName"/>.
+        /// </summary>
+        /// <param name="methodName">The name of the method being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <typeparam name="T">The type being searched.</typeparam>
+        /// <returns>Returns the found <see cref="MethodInfo"/>, if available.</returns>
+        public static MethodInfo GetMethodInfo<T>(string methodName, BindingFlags flags)
+        {
+            Type type = typeof(T);
+            return type.GetMethod(methodName, flags);
+        }
+
+        /// <summary>
+        /// Gets a given type's <see cref="MethodInfo"/>, given a <paramref name="methodName"/>.
+        /// </summary>
+        /// <param name="type">The type being searched.</param>
+        /// <param name="methodName">The name of the method being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <returns>Returns the found <see cref="MethodInfo"/>, if available.</returns>
+        public static MethodInfo GetMethodInfo(Type type, string methodName, BindingFlags flags)
+        {
+            return type?.GetMethod(methodName, flags);
+        }
+
+        /// <summary>
+        /// Gets a value of a field of a given type. This variant is for static variables.
+        /// </summary>
+        /// <param name="fieldName">The name of the field being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <param name="value">The found value.</param>
+        /// <typeparam name="TType">The type being searched.</typeparam>
+        /// <typeparam name="TValue">The type of the variable. If you don't know, use <see cref="object"/>.</typeparam>
+        /// <returns>Returns if the <paramref name="value"/> was successfully found.</returns>
+        public static bool GetFieldValue<TType, TValue>(string fieldName, BindingFlags flags, out TValue value)
+        {
+            return GetFieldValue(typeof(TType), fieldName, flags, out value);
+        }
+
+        /// <summary>
+        /// Gets a value of a field of a given type. This variant is for static variables.
+        /// </summary>
+        /// <param name="type">The type being searched.</param>
+        /// <param name="fieldName">The name of the field being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <param name="value">The found value.</param>
+        /// <typeparam name="TValue">The type of the variable. If you don't know, use <see cref="object"/>.</typeparam>
+        /// <returns>Returns if the <paramref name="value"/> was successfully found.</returns>
+        public static bool GetFieldValue<TValue>(Type type, string fieldName, BindingFlags flags, out TValue value)
+        {
+            value = default;
+            FieldInfo fieldInfo = GetFieldInfo(type, fieldName, flags);
+
+            if (fieldInfo == null || fieldInfo.GetValue(null) is not TValue foundValue)
+                return false;
+            
+            value = foundValue;
+            return true;
+        }
+
+        /// <summary>
         /// Gets a value from a Field after a series of paths.
         /// </summary>
         /// <typeparam name="T">The type of the variable. If you don't know, use <see cref="object"/>.</typeparam>
@@ -481,6 +597,41 @@ namespace SlashParadox.Essence.Kits
                     return true; // Return if the value was correctly set.
                 }
             }
+        }
+        
+        /// <summary>
+        /// Gets a value of a property of a given type. This variant is for static variables.
+        /// </summary>
+        /// <param name="propertyName">The name of the property being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <param name="value">The found value.</param>
+        /// <typeparam name="TType">The type being searched.</typeparam>
+        /// <typeparam name="TValue">The type of the variable. If you don't know, use <see cref="object"/>.</typeparam>
+        /// <returns>Returns if the <paramref name="value"/> was successfully found.</returns>
+        public static bool GetPropertyValue<TType, TValue>(string propertyName, BindingFlags flags, out TValue value)
+        {
+            return GetPropertyValue(typeof(TType), propertyName, flags, out value);
+        }
+
+        /// <summary>
+        /// Gets a value of a property of a given type. This variant is for static variables.
+        /// </summary>
+        /// <param name="type">The type being searched.</param>
+        /// <param name="propertyName">The name of the property being searched for.</param>
+        /// <param name="flags">The <see cref="BindingFlags"/> to determine what is accessible.</param>
+        /// <param name="value">The found value.</param>
+        /// <typeparam name="TValue">The type of the variable. If you don't know, use <see cref="object"/>.</typeparam>
+        /// <returns>Returns if the <paramref name="value"/> was successfully found.</returns>
+        public static bool GetPropertyValue<TValue>(Type type, string propertyName, BindingFlags flags, out TValue value)
+        {
+            value = default;
+            PropertyInfo propertyInfo = GetPropertyInfo(type, propertyName, flags);
+
+            if (propertyInfo == null || propertyInfo.GetValue(null, null) is not TValue foundValue)
+                return false;
+            
+            value = foundValue;
+            return true;
         }
 
         /// <summary>

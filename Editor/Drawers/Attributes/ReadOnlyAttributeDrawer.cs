@@ -17,7 +17,7 @@ namespace SlashParadox.Essence.Editor
             return EditorGUI.GetPropertyHeight(property, label);
         }
 
-        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label)
+        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label, PropertyDrawerData data)
         {
             bool enabled = GUI.enabled;
             

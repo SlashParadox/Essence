@@ -30,5 +30,8 @@ namespace SlashParadox.Essence
 
         /// <summary>The file type name for unity assets.</summary>
         public static readonly string AssetFileType = ".asset";
+
+        /// <summary>The name of the 'DontDestroyOnLoad' scene.</summary>
+        public static readonly string DontDestroyOnLoadName = "DontDestroyOnLoad";
     }
 }

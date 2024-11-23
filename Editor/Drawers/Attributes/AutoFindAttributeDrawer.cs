@@ -14,7 +14,7 @@ namespace SlashParadox.Essence.Editor
     [CustomPropertyDrawer(typeof(AutoFindAttribute))]
     public class AutoFindAttributeDrawer : EssencePropertyDrawer
     {
-        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label)
+        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label, PropertyDrawerData data)
         {
             AutoFindAttribute atr = attribute as AutoFindAttribute;
             if (atr == null || property.propertyType != SerializedPropertyType.ObjectReference)

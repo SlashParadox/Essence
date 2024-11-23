@@ -68,7 +68,7 @@ namespace SlashParadox.Essence.Editor
             base.OnDrawerInitialized(property, label);
         }
 
-        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label)
+        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label, PropertyDrawerData data)
         {
             // ReSharper disable once CoVariantArrayConversion
             selectedIndex = EditorGUI.Popup(position, label, selectedIndex, filteredTypes);

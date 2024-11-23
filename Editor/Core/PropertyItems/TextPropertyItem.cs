@@ -8,7 +8,7 @@ using UnityEngine;
 namespace SlashParadox.Essence.Editor
 {
     /// <summary>
-    /// A <see cref="PropertyValueItem{T}"/> for <see cref="Color"/>.
+    /// A <see cref="PropertyValueItem{T}"/> for text blocks.
     /// </summary>
     [CustomPropertyItem(typeof(string))]
     public class TextPropertyItem : PropertyValueItem<string>

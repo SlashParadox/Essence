@@ -17,6 +17,8 @@ namespace SlashParadox.Essence.Editor
         /// <summary>The created numeric item.</summary>
         private NumericPropertyItem<T> _numericItem;
 
+        private EditorValue<T> _editorValue;
+
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
             return _numericItem?.GetHeight() ?? 0.0f;
@@ -24,15 +26,16 @@ namespace SlashParadox.Essence.Editor
 
         protected override void OnDrawerInitialized(SerializedProperty property, GUIContent label)
         {
-            EditorValue<T> value = new EditorValue<T>(true, property);
-            _numericItem = MakeNewNumericItem(value);
+            _editorValue = new EditorValue<T>();
+            _numericItem = MakeNewNumericItem(_editorValue);
 
             if (_numericItem != null)
                 _numericItem.Label.Label = label;
         }
 
-        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label)
+        protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label, PropertyDrawerData data)
         {
+            _editorValue?.SetSerializedProperty(property);
             _numericItem?.Draw(ref position);
         }
 

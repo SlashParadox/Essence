@@ -3,6 +3,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 
 namespace SlashParadox.Essence.Kits
@@ -406,6 +407,48 @@ namespace SlashParadox.Essence.Kits
                 int randomIndex = random.GetRandomIntIE(i, lastIndex);
                 iList.SwapValues(i, randomIndex);
             }
+        }
+        
+        /// <summary>
+        /// Attempts to get a value from a <see cref="IDictionary{TKey,TValue}"/>, if it exists. If the key is not valid, a new entry is created with
+        /// the default value.
+        /// </summary>
+        /// <param name="dictionary">The <see cref="IDictionary{TKey,TValue}"/> to check.</param>
+        /// <param name="key">The key of the value.</param>
+        /// <param name="value">The found or created value.</param>
+        /// <typeparam name="TKey">The type of the <see cref="key"/>.</typeparam>
+        /// <typeparam name="TValue">The type of the <see cref="value"/>.</typeparam>
+        public static void GetOrCreateValue<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, out TValue value)
+        {
+            if (dictionary.TryGetValue(key, out value))
+                return;
+
+            value = default;
+            dictionary.Add(key, value);
+        }
+
+        /// <summary>
+        /// Attempts to get a value from a <see cref="IDictionary{TKey,TValue}"/>, if it exists. If the key is not valid, or is null, a new entry is
+        /// created with the default constructor.
+        /// </summary>
+        /// <param name="dictionary">The <see cref="IDictionary{TKey,TValue}"/> to check.</param>
+        /// <param name="key">The key of the value.</param>
+        /// <param name="value">The found or created value.</param>
+        /// <typeparam name="TKey">The type of the <see cref="key"/>.</typeparam>
+        /// <typeparam name="TValue">The type of the <see cref="value"/>.</typeparam>
+        public static void GetOrInitializeValue<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, out TValue value) where TValue : new()
+        {
+            bool isContained = dictionary.TryGetValue(key, out value);
+
+            if (value != null)
+                return;
+
+            value = new TValue();
+
+            if (isContained)
+                dictionary[key] = value;
+            else
+                dictionary.Add(key, value);
         }
     }
 }

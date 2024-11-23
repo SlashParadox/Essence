@@ -1,6 +1,5 @@
 // Copyright (c) Craig Williams, SlashParadox
 
-#if UNITY_2019_1_OR_NEWER
 using SlashParadox.Essence.Kits;
 using UnityEngine;
 
@@ -19,6 +18,9 @@ namespace SlashParadox.Essence
         /// <summary>The <see cref="GameManagerData"/> to attach to the <see cref="GameManager"/>.</summary>
         [SerializeField] private GameManagerData gameManagerData;
 
+        /// <summary>The default scene to use when displaying a loading screen.</summary>
+        [SerializeField] [SceneReference] private string defaultLoadScene;
+
         /// <summary>The <see cref="System.Type"/> to use for the <see cref="GameManager"/>.</summary>
         public MemberType<GameManager> GameManagerClass { get { return gameManagerClass; } }
 
@@ -35,16 +37,15 @@ namespace SlashParadox.Essence
         /// </summary>
         /// <param name="gameManager">The <see cref="GameManager"/> to give the data to.</param>
         /// <returns>Returns the <see cref="gameManagerData"/>.</returns>
-        public GameManagerData SafeGetGameManagerData(GameManager gameManager)
+        internal GameManagerData SafeGetGameManagerData(GameManager gameManager)
         {
-            if (!DebugKit.LogIfFalse(gameManager, "Null game manager given!"))
+            if (!LogKit.LogIfFalse(gameManager, "Null game manager given!"))
                 return null;
 
-            if (!DebugKit.LogIfFalse(!gameManager.HasGameData(), "Given game manager already has game data!"))
+            if (!LogKit.LogIfFalse(!gameManager.HasGameData(), "Given game manager already has game data!"))
                 return null;
 
             return gameManagerData;
         }
     }
 }
-#endif

@@ -15,8 +15,15 @@ namespace SlashParadox.Essence.Editor
         /// The weight of this item when spacing it out. <see cref="PropertyGroup"/>s tally this weight up, and
         /// distribute the space in some way based on how big of a percentage the weight is. The easiest way to
         /// use this is by ensuring all items add up to a weight of 100, but this is not a hard rule.
+        /// If <see cref="IsFixedWeight"/> is true, this represents the size of the element in pixels.
         /// </summary>
-        public float SpaceWeight { get; set; }
+        public float Weight { get; set; }
+        
+        /// <summary>
+        /// If true, this item uses a fixed pixel weight. This means if <see cref="Weight"/> is 25,
+        /// the item wants to be of size 25 pixels, rather than a representative division of the total weight.
+        /// </summary>
+        public bool IsFixedWeight { get; set; }
         
         /// <summary>The amount of indentation to apply to this item.</summary>
         public int IndentAmount { get; set; }

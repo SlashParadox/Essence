@@ -35,6 +35,12 @@ namespace SlashParadox.Essence.Editor
         /// <summary>The index of the left mouse button in <see cref="Event"/>s.</summary>
         public static readonly int LeftMouseButtonIndex = 0;
 
+        /// <summary>The amount of spacing an indent takes up in the EditorGUI.</summary>
+        public static readonly float IndentSpacing = 15.0f;
+
+        /// <summary>The estimated size of a GUI scroll bar.</summary>
+        public static readonly float EditorScrollBarSize = 20.0f;
+
         /// <summary>The minimum distance for the mouse to move to allow dragging.</summary>
         private static readonly float MinDragRequirement = 16.0f;
 

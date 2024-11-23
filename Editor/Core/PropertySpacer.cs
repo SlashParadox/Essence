@@ -9,7 +9,7 @@ namespace SlashParadox.Essence.Editor
     /// <summary>
     /// A spacer element for <see cref="PropertyGroup"/>s.
     /// <see cref="VerticalSpacing"/> is for vertical groups.
-    /// <see cref="SpaceWeight"/> is for horizontal groups.
+    /// <see cref="Weight"/> is for horizontal groups.
     /// </summary>
     public class PropertySpacer : IDrawerItem
     {
@@ -19,7 +19,9 @@ namespace SlashParadox.Essence.Editor
         /// <summary>The vertical spacing to apply, in pixels.</summary>
         public float VerticalSpacing = EditorGUIUtility.singleLineHeight;
 
-        public float SpaceWeight { get; set; }
+        public float Weight { get; set; }
+
+        public bool IsFixedWeight { get; set; }
 
         public int IndentAmount { get { return 0; } set { } }
 
@@ -29,14 +31,15 @@ namespace SlashParadox.Essence.Editor
 
         public bool AutoDrawLabel { get { return false; } set { } }
 
-        public PropertySpacer(float spaceWeight = 1.0f)
+        public PropertySpacer(float weight = 1.0f, bool isFixed = false)
         {
-            SpaceWeight = spaceWeight;
+            Weight = weight;
+            IsFixedWeight = isFixed;
         }
 
         public bool CanDraw()
         {
-            return SpaceWeight > 0;
+            return Weight > 0;
         }
 
         public void Draw(ref Rect drawRect)

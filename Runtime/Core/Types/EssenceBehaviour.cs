@@ -1,6 +1,5 @@
 // Copyright (c) Craig Williams, SlashParadox
 
-#if UNITY_2019_1_OR_NEWER
 using UnityEngine;
 
 namespace SlashParadox.Essence
@@ -42,6 +41,20 @@ namespace SlashParadox.Essence
         {
             OnDestroyed?.Invoke(this);
         }
+
+        /// <summary>
+        /// Finds the first valid component, if the given component is null.
+        /// </summary>
+        /// <param name="inComponent">The component to test.</param>
+        /// <typeparam name="T">The type of <see cref="Component"/>.</typeparam>
+        /// <returns>Returns if <paramref name="inComponent"/> is valid.</returns>
+        protected bool FindComponentIfNull<T>(T inComponent) where T : Component
+        {
+            if (inComponent)
+                return true;
+
+            inComponent = GetComponent<T>();
+            return inComponent != null;
+        }
     }
 }
-#endif

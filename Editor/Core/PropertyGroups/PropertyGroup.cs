@@ -19,7 +19,9 @@ namespace SlashParadox.Essence.Editor
         /// <summary>If true, the label was drawn for this item.</summary>
         private bool _wasLabelDrawn;
 
-        public float SpaceWeight { get; set; } = 100;
+        public float Weight { get; set; } = 100;
+        
+        public bool IsFixedWeight { get; set; }
 
         public int IndentAmount { get; set; }
 
@@ -28,6 +30,15 @@ namespace SlashParadox.Essence.Editor
         public GUIStyle Style { get; set; }
 
         public bool AutoDrawLabel { get; set; } = true;
+        
+        /// <summary>The initial <see cref="Rect"/> at the start of the draw call.</summary>
+        protected Rect InitialRect { get; private set; }
+        
+        /// <summary>The total amount of weight of non-fixed <see cref="PropertyGroup.DrawerItems"/>.</summary>
+        protected float TotalWeight { get; private set; }
+        
+        /// <summary>The amount of pixels that will be taken up by fixed-weighted items. This should be subtracted from the initial rect.</summary>
+        protected float TotalFixedSize { get; private set; }
 
         protected PropertyGroup(int estimatedElements = 0)
         {
@@ -44,11 +55,16 @@ namespace SlashParadox.Essence.Editor
             if (DrawerItems.IsEmptyOrNull() || !CanDraw())
                 return;
 
-            EditorGUI.indentLevel += IndentAmount;
+            //EditorGUI.indentLevel += IndentAmount;
             drawRect.height = EditorGUIUtility.singleLineHeight;
             
             if (AutoDrawLabel)
                 DrawlLabel(ref drawRect);
+
+            drawRect.x += IndentAmount * EditorKit.IndentSpacing;
+            drawRect.width -= IndentAmount * EditorKit.IndentSpacing;
+            InitialRect = drawRect;
+            TallyWeights();
             
             OnDrawStart(ref drawRect);
 
@@ -64,9 +80,11 @@ namespace SlashParadox.Essence.Editor
 
             if (AutoDrawLabel)
                 CleanUpLabel(ref drawRect);
-            
+
             OnDrawEnd(ref drawRect);
-            EditorGUI.indentLevel -= IndentAmount;
+           // EditorGUI.indentLevel -= IndentAmount;
+            drawRect.x -= IndentAmount * EditorKit.IndentSpacing;
+            drawRect.width += IndentAmount * EditorKit.IndentSpacing;
         }
 
         public virtual float GetHeight()
@@ -121,6 +139,16 @@ namespace SlashParadox.Essence.Editor
             return true;
         }
 
+        public void ClearItems()
+        {
+            for (int i = DrawerItems.Count - 1; i >= 0; --i)
+            {
+                IDrawerItem item = DrawerItems[i];
+                DrawerItems.RemoveAt(i);
+                OnItemRemoved(item);
+            }
+        }
+
         /// <summary>
         /// Gets the number of <see cref="IDrawerItem"/>s contained.
         /// </summary>
@@ -128,6 +156,55 @@ namespace SlashParadox.Essence.Editor
         public float GetItemCount()
         {
             return DrawerItems.Count;
+        }
+
+        /// <summary>
+        /// Gets a drawer item's expected width, depending on if it is fixed or spaced weight.
+        /// </summary>
+        /// <param name="item">The <see cref="IDrawerItem"/> to check.</param>
+        /// <returns>Returns the expected width. Use as necessary for your drawer.</returns>
+        protected float GetExpectedItemWeightedWidth(IDrawerItem item)
+        {
+            if (item == null)
+                return 0.0f;
+
+            if (item.IsFixedWeight)
+                return item.Weight;
+
+            return (InitialRect.width - TotalFixedSize) * (item.Weight / TotalWeight);
+        }
+        
+        /// <summary>
+        /// Gets a drawer item's expected height, depending on if it is fixed or spaced weight.
+        /// </summary>
+        /// <param name="item">The <see cref="IDrawerItem"/> to check.</param>
+        /// <returns>Returns the expected height. Use as necessary for your drawer.</returns>
+        protected float GetExpectedItemWeightedHeight(IDrawerItem item)
+        {
+            if (item == null)
+                return 0.0f;
+
+            if (item.IsFixedWeight)
+                return item.Weight;
+
+            return (InitialRect.height - TotalFixedSize) * (item.Weight / TotalWeight);
+        }
+
+        private void TallyWeights()
+        {
+            TotalWeight = 0.0f;
+            TotalFixedSize = 0.0f;
+            
+            foreach (IDrawerItem item in DrawerItems)
+            {
+                if (!item.CanDraw())
+                    continue;
+
+                if (item.IsFixedWeight)
+                    TotalFixedSize += item.Weight;
+                else
+                    TotalWeight += item.Weight;
+            }
         }
 
         /// <summary>
