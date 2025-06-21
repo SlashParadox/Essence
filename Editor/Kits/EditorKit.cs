@@ -1,11 +1,11 @@
 // Copyright (c) Craig Williams, SlashParadox
 
-#if UNITY_2019_1_OR_NEWER
+using SlashParadox.Essence.Kits;
 using System;
 using System.Reflection;
-using SlashParadox.Essence.Kits;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace SlashParadox.Essence.Editor
 {
@@ -47,18 +47,41 @@ namespace SlashParadox.Essence.Editor
         /// <summary><see cref="MethodInfo"/> for making a scrolling text area, from the <see cref="EditorGUI"/>.</summary>
         private static readonly MethodInfo ScrollableTextAreaInternalMethod;
 
+        /// <summary>Information on a <see cref="SerializedObject"/>'s pointer. Used for validity checking.</summary>
+        private static readonly FieldInfo SerializedObjectPtrInfo;
+
+        /// <summary>Information on a <see cref="SerializedProperty"/>'s pointer. Used for validity checking.</summary>
+        private static readonly PropertyInfo SerializedPropertyPtrInfo;
+
+        /// <summary>Used in <see cref="BuildTypeMenuPath"/>. Separates namespaces and classes in a type path.</summary>
+        private static readonly char TypeNameSeparator = '.';
+
+        /// <summary>Used in <see cref="BuildTypeMenuPath"/>. Separates namespaces and classes in a menu path.</summary>
+        private static readonly char MenuPathSeparator = '/';
+
+        /// <summary>Used in <see cref="BuildTypeMenuPath"/>. The start of a menu pass for classes when using <see cref="TypeGrouping.ByIdentity"/>.</summary>
+        private static readonly string ClassGroupingName = "Class/";
+
+        /// <summary>Used in <see cref="BuildTypeMenuPath"/>. The start of a menu pass for structs when using <see cref="TypeGrouping.ByIdentity"/>.</summary>
+        private static readonly string StructGroupingName = "Struct/";
+
+        /// <summary>Used in <see cref="BuildTypeMenuPath"/>. The start of a menu pass for interfaces when using <see cref="TypeGrouping.ByIdentity"/>.</summary>
+        private static readonly string InterfaceGroupingName = "Interface/";
+
+        /// <summary>Used in <see cref="BuildTypeMenuPath"/>. The start of a menu pass for enum when using <see cref="TypeGrouping.ByIdentity"/>.</summary>
+        private static readonly string EnumGroupingName = "Enum/";
+
         /// <summary>The current <see cref="DragState"/>.</summary>
         private static DragState _lastDragState = DragState.NoDrag;
 
         /// <summary>The initial position of the mouse at the start of a drag.</summary>
         private static Vector2 _dragStartPosition = Vector2.zero;
 
-        private static readonly FieldInfo SerializedObjectPtrInfo;
-
         static EditorKit()
         {
             ScrollableTextAreaInternalMethod = typeof(EditorGUI).GetMethod("ScrollableTextAreaInternal", ReflectionKit.DefaultFlags);
             SerializedObjectPtrInfo = typeof(SerializedObject).GetField("m_NativeObjectPtr", ReflectionKit.DefaultFlags);
+            SerializedPropertyPtrInfo = typeof(SerializedProperty).GetProperty("isValid", ReflectionKit.DefaultFlags);
         }
 
         /// <summary>
@@ -240,6 +263,11 @@ namespace SlashParadox.Essence.Editor
             return outValue;
         }
 
+        /// <summary>
+        /// Checks if the given <see cref="SerializedObject"/> is invalid.
+        /// </summary>
+        /// <param name="serializedObject">The <see cref="SerializedObject"/> to check.</param>
+        /// <returns>Returns if the <paramref name="serializedObject"/> is invalid.</returns>
         public static bool IsSerializedObjectDisposed(SerializedObject serializedObject)
         {
             if (serializedObject == null)
@@ -247,6 +275,89 @@ namespace SlashParadox.Essence.Editor
 
             return SerializedObjectPtrInfo == null || (IntPtr)SerializedObjectPtrInfo.GetValue(serializedObject) == IntPtr.Zero;
         }
+
+        /// <summary>
+        /// Checks if the given <see cref="SerializedProperty"/> is invalid.
+        /// </summary>
+        /// <param name="property">The <see cref="SerializedProperty"/> to check.</param>
+        /// <returns>Returns if the <paramref name="property"/> is invalid.</returns>
+        public static bool IsSerializedPropertyDisposed(SerializedProperty property)
+        {
+            if (property == null)
+                return true;
+
+            if (SerializedPropertyPtrInfo == null || (bool)SerializedPropertyPtrInfo.GetValue(property) == false)
+                return true;
+
+            return IsSerializedObjectDisposed(property.serializedObject);
+        }
+
+        /// <summary>
+        /// Builds out a menu selection path for a given <see cref="Type"/>. Useful for pop-up menus.
+        /// </summary>
+        /// <param name="type">The <see cref="Type"/> to check.</param>
+        /// <param name="grouping">The <see cref="TypeGrouping"/> to use for formatting.</param>
+        /// <returns>Returns the formatted string.</returns>
+        public static string BuildTypeMenuPath(Type type, TypeGrouping grouping)
+        {
+            if (type == null)
+                return string.Empty;
+
+            switch (grouping)
+            {
+                case TypeGrouping.ByInheritance:
+                {
+                    if (type.IsClass)
+                    {
+                        string currentPath = type.FullName;
+                        Type currentType = type;
+                        while (currentType != null && currentType.IsClass)
+                        {
+                            currentPath = $"{currentType.FullName}/{currentPath}";
+                            currentType = currentType.BaseType;
+                        }
+
+                        return currentPath;
+                    }
+
+                    break;
+                }
+                case TypeGrouping.ByNamespace:
+                {
+                    return type.FullName?.Replace(TypeNameSeparator, MenuPathSeparator) ?? string.Empty;
+                }
+                case TypeGrouping.ByIdentity:
+                {
+                    string usedPrefix;
+                    if (type.IsClass)
+                        usedPrefix = ClassGroupingName;
+                    else if (type.IsInterface)
+                        usedPrefix = InterfaceGroupingName;
+                    else if (type.IsEnum)
+                        usedPrefix = EnumGroupingName;
+                    else
+                        usedPrefix = StructGroupingName;
+
+                    return $"{usedPrefix}{type.FullName}";
+                }
+            }
+
+            return type.FullName;
+        }
+
+        /// <summary>
+        /// An inline helper method to name a <see cref="VisualElement"/>.
+        /// </summary>
+        /// <param name="element">The <see cref="VisualElement"/> to name.</param>
+        /// <param name="newName">The name for the <paramref name="element"/>.</param>
+        /// <typeparam name="T">The type of the <see cref="VisualElement"/>.</typeparam>
+        /// <returns>Returns the <see cref="element"/>.</returns>
+        public static T SetName<T>(this T element, string newName) where T : VisualElement
+        {
+            if (element != null)
+                element.name = newName;
+
+            return element;
+        }
     }
 }
-#endif

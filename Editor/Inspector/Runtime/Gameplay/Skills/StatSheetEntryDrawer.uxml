@@ -1,0 +1,11 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <Style src="project://database/Packages/com.slashparadox.essence/Editor/Drawers/Types/Gameplay/StatsSystem/StatSheetEntryDrawer.uss?fileID=7433441132597879392&amp;guid=86896e514ae369f4bafbae6d4de0cf74&amp;type=3#StatSheetEntryDrawer" />
+    <ui:VisualElement name="MainLayout" style="flex-direction: row; align-content: stretch; justify-content: flex-start; align-items: flex-start;">
+        <uie:ObjectField binding-path="stat" style="flex-grow: 0.4;" />
+        <SlashParadox.Essence.Editor.FlexFloatField binding-path="initialValue" label="Value" name="InitialValue" class="horilayout" style="flex-grow: 0.3; margin-right: 5px;" />
+        <ui:VisualElement name="RangeSection" class="specialsection horilayout" style="flex-grow: 1; flex-direction: row; padding-top: 0; padding-right: 2px; padding-bottom: 0; padding-left: 2px;">
+            <SlashParadox.Essence.Editor.FlexFloatField binding-path="range.x" name="RangeMin" label="Min" style="flex-grow: 1;" />
+            <SlashParadox.Essence.Editor.FlexFloatField binding-path="range.y" name="RangeMax" label="Max" style="flex-grow: 1;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,19 +1,30 @@
-using UnityEngine;
-using UnityEngine.Serialization;
+// Copyright (c) Craig Williams, SlashParadox
 
-namespace SlashParadox.Essence
+using UnityEngine;
+
+namespace SlashParadox.Essence.GameFramework
 {
     [CreateAssetMenu(fileName = "NewSceneData", menuName = "Essence/Scene/Scene Data")]
     public class SceneData : EssenceScriptableObject
     {
         [SerializeField] private GameMode gameModePrefab;
-        [SerializeField] private PlayerController playerControllerPrefab;
-        [SerializeField] private Controllable defaultControllablePrefab;
-        
+
+#if UNITY_EDITOR
+        [SerializeField] private GameModeSettings overrideSettings;
+#endif
+
         internal GameMode GameModePrefab { get { return gameModePrefab; } }
-        
-        internal PlayerController PlayerControllerPrefab { get { return playerControllerPrefab; } }
-        
-        internal Controllable DefaultControllablePrefab { get { return defaultControllablePrefab; } }
+
+        internal GameModeSettings OverrideSettings
+        {
+            get
+            {
+#if UNITY_EDITOR
+                return overrideSettings;
+#else
+                return null;
+#endif
+            }
+        }
     }
 }

@@ -162,7 +162,6 @@ namespace SlashParadox.Essence.Kits
         {
             flags |= BindingFlags.Static; // Ensure there's a static flag, otherwise this is pointless.
 
-            FieldInfo[] fields = type?.GetFields(flags);
             return type?.GetField(propertyName, flags);
         }
 
@@ -221,9 +220,6 @@ namespace SlashParadox.Essence.Kits
                                 ++i; // The next path is guaranteed to be the element path.
                                 int index = ParseCollectionIndex(path[i]); // Parse out the index.
                                 previous = current; // Set the previous object.
-                                
-                                
-                                FieldInfo f = current?.GetType().GetField(path[i], flags);
 
                                 // If the index is valid, return that object. Else, return null.
                                 current = iList.IsValidIndexNG(index) ? iList[index] : null;
@@ -526,7 +522,7 @@ namespace SlashParadox.Essence.Kits
             if (field == null || current is not T foundValue) 
                 return false;
             
-            // If the value is not null, and is assignable from T, return the value casted to T.
+            // If the value is not null, and is assignable from T, return the value cast to T.
             value = foundValue;
             return true;
         }
@@ -565,13 +561,13 @@ namespace SlashParadox.Essence.Kits
             if (field == null)
                 return false;
 
-            // Switch on previous' type. This also allows for extra types later if required.
+            // Switch on previous type. This also allows for extra types later if required.
             switch (previous)
             {
                 // If the previous object is an IList, and the last path points to an array element.
                 case IList iList when path.LastElement().Contains(DataKeyword):
                 {
-                    int index = ParseCollectionIndex(path.LastElement()); // Parse the index out..
+                    int index = ParseCollectionIndex(path.LastElement()); // Parse the index out.
 
                     // Check that the collection is not null, and the requested index is valid.
                     if (!iList.IsValidIndexNG(index))
@@ -668,7 +664,7 @@ namespace SlashParadox.Essence.Kits
             if (property == null || current is not T foundValue) 
                 return false;
             
-            // If the value is not null, and is assignable from T, return the value casted to T.
+            // If the value is not null, and is assignable from T, return the value cast to T.
             value = foundValue;
             return true;
         }
@@ -707,7 +703,7 @@ namespace SlashParadox.Essence.Kits
             if (property == null)
                 return false;
 
-            // Switch on previous' type. This also allows for extra types later if required.
+            // Switch on previous type. This also allows for extra types later if required.
             switch (previous)
             {
                 // If the previous object is an IList, and the last path points to an array element.
@@ -835,6 +831,49 @@ namespace SlashParadox.Essence.Kits
         public static bool SetVariableValue<T>(object obj, T value, BindingFlags flags, params string[] path)
         {
             return !SetFieldValue(obj, value, flags, path) || SetPropertyValue(obj, value, flags, path);
+        }
+
+        /// <summary>
+        /// Finds a managed type reference's true type.
+        /// </summary>
+        /// <param name="managedReferenceName">The path of the reference. This typically formats as
+        /// "{Assembly Name} {Type Full Name}".</param>
+        /// <returns>Returns the found type, if at all.</returns>
+        public static Type FindManagedReferenceType(string managedReferenceName)
+        {
+            if (string.IsNullOrEmpty(managedReferenceName))
+                return null;
+
+            string[] reference = managedReferenceName.Split(' ');
+            if (reference.IsEmptyOrNull() || reference.Length != 2)
+                return null;
+
+            return FindManagedReferenceType(reference[0], reference[1]);
+        }
+
+        /// <summary>
+        /// Finds a managed type reference's true type.
+        /// </summary>
+        /// <param name="assemblyName">The name of the <see cref="Assembly"/>.</param>
+        /// <param name="typeName">The full name of the <see cref="Type"/>.</param>
+        /// <returns>Returns the found type, if at all.</returns>
+        public static Type FindManagedReferenceType(string assemblyName, string typeName)
+        {
+            if (string.IsNullOrEmpty(assemblyName) || string.IsNullOrEmpty(typeName))
+                return null;
+
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (Assembly assembly in assemblies)
+            {
+                if (assembly == null)
+                    continue;
+
+                // Assembly full names only have the actual name part in the first part, followed with metadata.
+                if (assembly.FullName.StartsWith($"{assemblyName},"))
+                    return assembly.GetType(typeName);
+            }
+
+            return null;
         }
     }
 }

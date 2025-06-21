@@ -37,6 +37,7 @@ namespace SlashParadox.Essence
         public MemberType(System.Type type)
         {
             Type = type;
+            assemblyQualifiedName = type != null ? type.AssemblyQualifiedName : string.Empty;
         }
 
         /// <summary>
@@ -73,16 +74,23 @@ namespace SlashParadox.Essence
             return assemblyQualifiedName;
         }
 
-        /// <summary>
-        /// Checks if a given type can be set.
-        /// </summary>
-        /// <param name="type">The <see cref="System.Type"/> to check.</param>
-        /// <param name="error">An error message to print if false.</param>
-        /// <returns>Returns if the type can be set.</returns>
-        public virtual bool CanTypeBeSet(System.Type type, out string error)
+        public override bool Equals(object obj)
         {
-            error = null;
-            return true;
+            return Equals(obj as MemberType);
+        }
+
+        public override int GetHashCode()
+        {
+            return Type?.GetHashCode() ?? 0;
+        }
+
+        protected bool Equals(MemberType other)
+        {
+            bool otherIsNull = ReferenceEquals(other, null);
+            if (ReferenceEquals(this, null) && !otherIsNull)
+                return true;
+
+            return !otherIsNull && Type == other.Type;
         }
 
         /// <summary>
@@ -108,9 +116,21 @@ namespace SlashParadox.Essence
                 System.Diagnostics.Debug.Print($"Unable to set type {type} to this MemberType because [{error}]");
                 _type = null;
             }
-            
+
             _type = type;
             assemblyQualifiedName = _type != null ? _type.AssemblyQualifiedName : string.Empty;
+        }
+
+        /// <summary>
+        /// Checks if a given type can be set.
+        /// </summary>
+        /// <param name="type">The <see cref="System.Type"/> to check.</param>
+        /// <param name="error">An error message to print if false.</param>
+        /// <returns>Returns if the type can be set.</returns>
+        public virtual bool CanTypeBeSet(System.Type type, out string error)
+        {
+            error = null;
+            return true;
         }
 
         public static implicit operator System.Type(MemberType memberType)
@@ -122,68 +142,49 @@ namespace SlashParadox.Essence
         {
             return new MemberType(type);
         }
-        
+
         public static bool operator ==(MemberType a, MemberType b)
         {
             bool aIsNull = ReferenceEquals(a, null);
             if (aIsNull && ReferenceEquals(b, null))
                 return true;
-            
+
             return !aIsNull && a.Equals(b);
         }
-        
+
         public static bool operator !=(MemberType a, MemberType b)
         {
             return !(a == b);
-        }
-
-        public override bool Equals(object obj)
-        {
-            return Equals(obj as MemberType);
-        }
-
-        protected bool Equals(MemberType other)
-        {
-            bool otherIsNull = ReferenceEquals(other, null);
-            if (ReferenceEquals(this, null) && !otherIsNull)
-                return true;
-            
-            return !otherIsNull && Type == other.Type;
-        }
-
-        public override int GetHashCode()
-        {
-            return Type?.GetHashCode() ?? 0;
         }
     }
 
     [System.Serializable]
     public class MemberType<T> : MemberType
     {
-        private bool _canBeBaseType;
+        public bool CanBeBaseType { get; }
 
         public MemberType()
         {
-            _canBeBaseType = true;
+            CanBeBaseType = true;
         }
 
         public MemberType(bool canBeBaseType = true)
         {
-            _canBeBaseType = canBeBaseType;
+            CanBeBaseType = canBeBaseType;
         }
 
         public MemberType(System.Type type, bool canBeBaseType = true)
-        : base(type)
+            : base(type)
         {
-            _canBeBaseType = canBeBaseType;
+            CanBeBaseType = canBeBaseType;
         }
-        
+
         public MemberType(string inAssemblyQualifiedString, bool canBeBaseType = true)
             : base(inAssemblyQualifiedString)
         {
-            _canBeBaseType = canBeBaseType;
+            CanBeBaseType = canBeBaseType;
         }
-        
+
         public override bool CanTypeBeSet(System.Type type, out string error)
         {
             System.Type baseType = typeof(T);
@@ -191,17 +192,17 @@ namespace SlashParadox.Essence
             // If the types match, check if we allow matching the base type.
             if (type == baseType)
             {
-                error = _canBeBaseType ? null : $"{type} matches the base type {baseType}, which is not allowed!";
+                error = CanBeBaseType ? null : $"{type} matches the base type {baseType}, which is not allowed!";
                 return string.IsNullOrEmpty(error);
             }
-            
+
             // If the base type is an interface, check if the given type implements it.
             if (baseType.IsInterface)
             {
                 error = type.ImplementsInterface(typeof(T)) ? null : $"{type} does not inherit {baseType}!";
                 return string.IsNullOrEmpty(error);
             }
-            
+
             // If the base type is a class, check if the given type inherits it.
             if (type.IsClass)
             {
@@ -216,21 +217,6 @@ namespace SlashParadox.Essence
     }
 
     /// <summary>
-    /// The different ways to sort options of a <see cref="MemberType"/>.
-    /// </summary>
-    public enum MemberTypeGroup
-    {
-        /// <summary>There is no sorting. Everything is listed as is.</summary>
-        None,
-        /// <summary>Items are sorted by the class they inherit.</summary>
-        ByInheritance,
-        /// <summary>Items are sorted by the namespace they're apart of.</summary>
-        ByNamespace,
-        /// <summary>Items are sorted by type identity (class, struct, interface, enum)</summary>
-        ByIdentity,
-    }
-
-    /// <summary>
     /// An attribute for <see cref="MemberType"/> and how to sort them.
     /// </summary>
     [System.AttributeUsage(System.AttributeTargets.Field)]
@@ -238,16 +224,18 @@ namespace SlashParadox.Essence
     {
 #if UNITY_EDITOR
         /// <summary>The sort style to use.</summary>
-        public MemberTypeGroup Grouping { get; private set; }
+        public TypeGrouping Grouping { get; private set; }
 #endif
 
         /// <summary>
         /// The constructor for a <see cref="MemberTypeGroupAttribute"/>.
         /// </summary>
         /// <param name="grouping">The sort style to use.</param>
-        public MemberTypeGroupAttribute(MemberTypeGroup grouping)
+        public MemberTypeGroupAttribute(TypeGrouping grouping)
         {
+#if UNITY_EDITOR
             Grouping = grouping;
+#endif
         }
     }
 
@@ -300,7 +288,7 @@ namespace SlashParadox.Essence
         /// </summary>
         public MemberTypeClassAttribute()
             : this(false) { }
-        
+
         /// <summary>
         /// The constructor for a <see cref="MemberTypeClassAttribute"/>.
         /// </summary>
@@ -313,7 +301,7 @@ namespace SlashParadox.Essence
             return type != null && type.IsClass;
         }
     }
-    
+
     /// <summary>
     /// A <see cref="MemberTypeFilterAttribute"/> that only allows value types.
     /// </summary>
@@ -324,7 +312,7 @@ namespace SlashParadox.Essence
         /// </summary>
         public MemberTypeValueTypeAttribute()
             : this(false) { }
-        
+
         /// <summary>
         /// The constructor for a <see cref="MemberTypeValueTypeAttribute"/>.
         /// </summary>
@@ -337,7 +325,7 @@ namespace SlashParadox.Essence
             return type != null && type.IsValueType;
         }
     }
-    
+
     /// <summary>
     /// A <see cref="MemberTypeFilterAttribute"/> that only allows value types.
     /// </summary>
@@ -348,7 +336,7 @@ namespace SlashParadox.Essence
         /// </summary>
         public MemberTypeStructAttribute()
             : this(false) { }
-        
+
         /// <summary>
         /// The constructor for a <see cref="MemberTypeStructAttribute"/>.
         /// </summary>
@@ -361,7 +349,7 @@ namespace SlashParadox.Essence
             return type != null && type.IsValueType && !type.IsEnum;
         }
     }
-    
+
     /// <summary>
     /// A <see cref="MemberTypeFilterAttribute"/> that only allows enum types.
     /// </summary>
@@ -372,7 +360,7 @@ namespace SlashParadox.Essence
         /// </summary>
         public MemberTypeEnumAttribute()
             : this(false) { }
-        
+
         /// <summary>
         /// The constructor for a <see cref="MemberTypeEnumAttribute"/>.
         /// </summary>
@@ -385,7 +373,7 @@ namespace SlashParadox.Essence
             return type != null && type.IsEnum;
         }
     }
-    
+
     /// <summary>
     /// A <see cref="MemberTypeFilterAttribute"/> that only allows interface types.
     /// </summary>
@@ -396,7 +384,7 @@ namespace SlashParadox.Essence
         /// </summary>
         public MemberTypeInterfaceAttribute()
             : this(false) { }
-        
+
         /// <summary>
         /// The constructor for a <see cref="MemberTypeInterfaceAttribute"/>.
         /// </summary>
@@ -409,7 +397,7 @@ namespace SlashParadox.Essence
             return type != null && type.IsInterface;
         }
     }
-    
+
     /// <summary>
     /// A <see cref="MemberTypeFilterAttribute"/> that only allows abstract types.
     /// </summary>
@@ -420,7 +408,7 @@ namespace SlashParadox.Essence
         /// </summary>
         public MemberTypeAbstractAttribute()
             : this(false) { }
-        
+
         /// <summary>
         /// The constructor for a <see cref="MemberTypeAbstractAttribute"/>.
         /// </summary>
@@ -459,7 +447,7 @@ namespace SlashParadox.Essence
 
             if (!_allowBaseType && type == _baseType)
                 return false;
-            
+
             return type.IsSubclassOrImplements(_baseType);
         }
     }

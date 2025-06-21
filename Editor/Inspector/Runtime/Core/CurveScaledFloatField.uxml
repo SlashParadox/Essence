@@ -1,0 +1,9 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <Style src="project://database/Packages/com.slashparadox.essence/Editor/Core/StyleSheets/EssenceCommonStyles.uss?fileID=7433441132597879392&amp;guid=4b01ad797cb15ff4ab74f55fbd3e3140&amp;type=3#EssenceCommonStyles" />
+    <ui:VisualElement style="flex-grow: 1; flex-direction: row;">
+        <ui:FloatField value="42.2" name="BaseValueField" label="Label Goes Here" style="align-self: flex-start; padding-right: 20px; flex-grow: 0.2; text-overflow: clip; max-width: 50%;" />
+        <SlashParadox.Essence.Editor.Inspector.ElementFoldout header-asset="project://database/Packages/com.slashparadox.essence/Editor/Inspector/Runtime/Core/CurveScaledFloatCurveObjField.uxml?fileID=9197481963319205126&amp;guid=5a9101a47851faf48bae054ef1637434&amp;type=3#CurveScaledFloatCurveObjField" style="flex-grow: 1; display: flex;">
+            <ui:TextField placeholder-text="Curve Name..." name="CurveNameField" style="margin-left: 10px;" />
+        </SlashParadox.Essence.Editor.Inspector.ElementFoldout>
+    </ui:VisualElement>
+</ui:UXML>

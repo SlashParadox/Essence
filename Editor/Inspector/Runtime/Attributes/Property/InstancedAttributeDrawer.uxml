@@ -1,0 +1,5 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <SlashParadox.Essence.Editor.Inspector.ElementFoldout header-asset="project://database/Packages/com.slashparadox.essence/Editor/Inspector/Attributes/InstancedAttributeDrawerDropdown.uxml?fileID=9197481963319205126&amp;guid=9ffd9d198f45e47438fb59601e002c80&amp;type=3#InstancedAttributeDrawerDropdown">
+        <uie:PropertyField />
+    </SlashParadox.Essence.Editor.Inspector.ElementFoldout>
+</ui:UXML>

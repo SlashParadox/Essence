@@ -1,0 +1,11 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <Style src="project://database/Packages/com.slashparadox.essence/Editor/UITK/StyleSheets/EssenceCommonStyles.uss?fileID=7433441132597879392&amp;guid=4b01ad797cb15ff4ab74f55fbd3e3140&amp;type=3#EssenceCommonStyles" />
+    <ui:VisualElement style="flex-grow: 1;">
+        <ui:VisualElement enabled="true" name="MainZone" style="flex-grow: 0; flex-direction: row; align-items: flex-start; align-self: stretch; justify-content: flex-start;">
+            <ui:Toggle toggle-on-label-click="false" value="false" name="InfoFoldout" class="unity-foldout__toggle" />
+            <uie:ObjectField name="StatField" style="flex-grow: 0.2;" />
+            <SlashParadox.Essence.Editor.FlexFloatField label="Base" name="BaseValueField" style="flex-grow: 1;" />
+            <SlashParadox.Essence.Editor.FlexFloatField label="Current" name="CurrentValueField" style="flex-grow: 1;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

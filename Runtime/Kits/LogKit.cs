@@ -226,6 +226,7 @@ namespace SlashParadox.Essence.Kits
                 log.Log(logType, message, context);
         }
 
+        // ReSharper disable Unity.PerformanceAnalysis
         /// <summary>
         /// Logs a message. Works even in non-development builds. Only use if required.
         /// </summary>

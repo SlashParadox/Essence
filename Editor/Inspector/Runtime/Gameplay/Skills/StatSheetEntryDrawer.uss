@@ -1,0 +1,24 @@
+.propertyLabel {
+    margin-top: 1px;
+    margin-right: 3px;
+    margin-bottom: 0;
+    margin-left: 3px;
+    -unity-text-align: middle-left;
+    flex-direction: column;
+    align-content: center;
+    align-self: stretch;
+    -unity-font-style: normal;
+    color: rgb(196, 196, 196);
+}
+
+.horilayout {
+    margin-left: 5px;
+}
+
+.specialsection {
+    background-color: var(--unity-colors-default-background);
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    border-bottom-right-radius: 3px;
+    border-bottom-left-radius: 3px;
+}

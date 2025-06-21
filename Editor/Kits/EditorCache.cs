@@ -7,7 +7,9 @@ using System.Linq;
 using System.Reflection;
 using SlashParadox.Essence.Kits;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace SlashParadox.Essence.Editor
 {
@@ -37,6 +39,8 @@ namespace SlashParadox.Essence.Editor
         /// <summary>A cache of <see cref="Type"/>s and their <see cref="PropertyItem"/>.</summary>
         private static readonly Dictionary<Type, Type> ValueItemCache = new Dictionary<Type, Type>();
 
+        private static readonly Dictionary<System.Type, string> VisualTreePaths = new Dictionary<Type, string>();
+
         /// <summary>
         /// A static constructor for the <see cref="EditorCache"/>.
         /// </summary>
@@ -45,6 +49,8 @@ namespace SlashParadox.Essence.Editor
             BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
             FieldCPDType = TypeCPD.GetField("m_Type", flags);
             FieldCPDChild = TypeCPD.GetField("m_UseForChildren", flags);
+
+            CacheVisualTreePaths();
 
 #if ES_PRELOAD_GUIDRAWERS
             PreloadGUIDrawers();
@@ -76,6 +82,13 @@ namespace SlashParadox.Essence.Editor
 #if ES_PRELOAD_GUIDRAWERS
             PreloadCustomPropertyValueItems();
 #endif
+        }
+
+        [MenuItem("Essence/Reset Visual Tree Asset Cache")]
+        public static void ResetVisualTreeAssetCache()
+        {
+            VisualTreePaths.Clear();
+            CacheVisualTreePaths();
         }
 
         /// <summary>
@@ -159,9 +172,15 @@ namespace SlashParadox.Essence.Editor
             if (propertyType == null)
                 return null;
 
+            Type PropertyHandlerType = typeof(PropertyField).Assembly.GetType("UnityEditor.PropertyHandler");
+            MethodInfo methodInfo = ReflectionKit.GetMethodInfo(PropertyHandlerType, "CreatePropertyDrawerWithDefaultObjectReferences", ReflectionKit.DefaultFlags);
+
             // See if the type has already been cached. If so, return an instance of it.
             if (DrawerCache.TryGetValue(propertyType, out Type drawerType))
-                return (T)Activator.CreateInstance(drawerType);
+            {
+
+                return methodInfo != null ? (T)methodInfo.Invoke(null, new object[] { drawerType }) : (T)Activator.CreateInstance(drawerType);
+            }
 
             // Otherwise, attempt to find the type.
             drawerType = FindDrawerTypeFromTypeCache(propertyType);
@@ -170,7 +189,8 @@ namespace SlashParadox.Essence.Editor
 
             // If the drawer type is valid, cache it and return an instance of it.
             DrawerCache.Add(propertyType, drawerType);
-            return (T)Activator.CreateInstance(drawerType);
+
+            return methodInfo != null ? (T)methodInfo.Invoke(null, new object[] { drawerType }) : (T)Activator.CreateInstance(drawerType);
         }
 
         /// <summary>
@@ -181,6 +201,12 @@ namespace SlashParadox.Essence.Editor
         public static T GetGUIDrawer<T>(SerializedProperty property) where T : GUIDrawer
         {
             return GetGUIDrawer<T>(property.GetVariableType());
+        }
+
+        public static bool HasGUIDrawer<T>(Type propertyType) where T : GUIDrawer
+        {
+            Type type = FindDrawerTypeFromTypeCache(propertyType);
+            return type != null && type.IsOrIsSubclassOf(typeof(T));
         }
 
         /// <summary>
@@ -344,6 +370,68 @@ namespace SlashParadox.Essence.Editor
             }
 
             return null;
+        }
+
+        public static string FindPathForTypeVisualTree(Type elementType)
+        {
+            if (elementType == null)
+                return null;
+
+            VisualTreePaths.TryGetValue(elementType, out string guid);
+            if (string.IsNullOrEmpty(guid))
+                return null;
+
+            return AssetDatabase.GUIDToAssetPath(guid);
+        }
+
+        public static VisualTreeAsset LoadVisualTreeForType(Type elementType)
+        {
+            string path = FindPathForTypeVisualTree(elementType);
+            if (string.IsNullOrEmpty(path))
+                return null;
+
+            return AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(path);
+        }
+
+        private static void CacheVisualTreePaths()
+        {
+            string[] treeAssets = AssetDatabase.FindAssets("t: VisualTreeAsset");
+            if (treeAssets.IsEmptyOrNull())
+                return;
+
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (Assembly assembly in assemblies)
+            {
+                foreach (Type type in assembly.GetTypes())
+                {
+                    VisualTreePathAttribute atr = type.GetCustomAttribute<VisualTreePathAttribute>();
+                    if (atr == null)
+                        continue;
+
+                    // A path can be either the name of the file, or the full path.
+                    string path = atr.Path;
+                    if (string.IsNullOrEmpty(path))
+                        path = type.Name;
+
+                    if (!path.EndsWith(".uxml"))
+                        path += ".uxml";
+
+                    bool bFullyQualified = path.Contains('/') || path.Contains('\\');
+                    foreach (string guid in treeAssets)
+                    {
+                        string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                        if (string.IsNullOrEmpty(assetPath))
+                            continue;
+
+                        if (bFullyQualified && assetPath != path)
+                            continue;
+                        else if (!bFullyQualified && !assetPath.EndsWith(path))
+                            continue;
+
+                        VisualTreePaths[type] = guid;
+                    }
+                }
+            }
         }
     }
 }

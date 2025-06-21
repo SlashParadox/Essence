@@ -15,6 +15,9 @@ namespace SlashParadox.Essence
             /// <summary>The value of an invalid ID.</summary>
             public const ulong InvalidID = 0;
 
+            /// <summary>An always-invalid handle.</summary>
+            public static readonly Handle InvalidHandle = new Handle(InvalidID);
+
             /// <summary>The internal ID of the handle.</summary>
             private ulong _id;
 
@@ -84,6 +87,15 @@ namespace SlashParadox.Essence
             {
                 return _trackedHandle.GetHashCode();
             }
+
+            /// <summary>
+            /// Checks if the handle is valid.
+            /// </summary>
+            /// <returns>Returns if the handle is valid.</returns>
+            public bool IsValid()
+            {
+                return _trackedHandle.IsValid();
+            }
         }
 
         /// <summary>
@@ -94,6 +106,7 @@ namespace SlashParadox.Essence
             /// <summary>The counter for ID values.</summary>
             private ulong _idCounter;
 
+            // ReSharper disable Unity.PerformanceAnalysis
             /// <summary>
             /// Gets a fresh <see cref="Handle"/> and increments the <see cref="_idCounter"/>.
             /// </summary>

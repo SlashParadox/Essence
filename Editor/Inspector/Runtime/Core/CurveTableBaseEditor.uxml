@@ -1,0 +1,9 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <Style src="project://database/Packages/com.slashparadox.essence/Editor/Core/StyleSheets/EssenceCommonStyles.uss?fileID=7433441132597879392&amp;guid=4b01ad797cb15ff4ab74f55fbd3e3140&amp;type=3#EssenceCommonStyles" />
+    <ui:VisualElement style="flex-grow: 1;">
+        <ui:VisualElement name="RowSection" class="editorBG" style="flex-grow: 0;">
+            <SlashParadox.Essence.Editor.HashMapField show-value-column="false" name="CurveListView" style="padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 12px;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="CurveSection" style="flex-grow: 1; margin-top: 15px;" />
+    </ui:VisualElement>
+</ui:UXML>

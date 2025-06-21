@@ -1,0 +1,6 @@
+:root {
+}
+
+.editorBG {
+    background-color: var(--unity-colors-default-background);
+}

@@ -1,5 +1,6 @@
 // Copyright (c) Craig Williams, SlashParadox
 
+using SlashParadox.Essence.GameFramework;
 using SlashParadox.Essence.Kits;
 using UnityEngine;
 
@@ -11,9 +12,9 @@ namespace SlashParadox.Essence
     [ProjectSettings(nameof(ProjectSettingsType.Runtime), "Essence", "EssenceSettings.asset")]
     public class EssenceProjectSettings : PublicProjectSettingsObject<EssenceProjectSettings>
     {
-        /// <summary>The <see cref="System.Type"/> to use for the <see cref="GameManager"/>.</summary>
+        /// <summary>See: <see cref="GameManagerPrefab"/></summary>
         [Header("Game Data Settings")]
-        [SerializeField] private MemberType<GameManager> gameManagerClass = new MemberType<GameManager>(false);
+        [SerializeField] private GameManager gameManagerPrefab;
 
         /// <summary>The <see cref="GameManagerData"/> to attach to the <see cref="GameManager"/>.</summary>
         [SerializeField] private GameManagerData gameManagerData;
@@ -21,8 +22,8 @@ namespace SlashParadox.Essence
         /// <summary>The default scene to use when displaying a loading screen.</summary>
         [SerializeField] [SceneReference] private string defaultLoadScene;
 
-        /// <summary>The <see cref="System.Type"/> to use for the <see cref="GameManager"/>.</summary>
-        public MemberType<GameManager> GameManagerClass { get { return gameManagerClass; } }
+        /// <summary>The <see cref="GameManager"/> to create. One must be provided for the game to start.</summary>
+        public GameManager GameManagerPrefab { get { return gameManagerPrefab; } }
 
 #if UNITY_EDITOR
         [UnityEditor.SettingsProvider]

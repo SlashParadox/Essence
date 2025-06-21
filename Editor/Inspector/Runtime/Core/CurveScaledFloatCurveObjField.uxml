@@ -1,0 +1,3 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <SlashParadox.Essence.Editor.FlexObjectField name="CurveTableField" type="SlashParadox.Essence.CurveTableFloat, SlashParadox.Essence" format-string="Curve [%s]" style="margin-right: 0; margin-left: 0; margin-bottom: 0; flex-grow: 0; flex-shrink: 0; align-items: flex-start;" />
+</ui:UXML>

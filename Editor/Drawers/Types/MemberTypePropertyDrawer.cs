@@ -1,54 +1,152 @@
 // Copyright (c) Craig Williams, SlashParadox
 
+using SlashParadox.Essence.Kits;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using SlashParadox.Essence.Kits;
 using UnityEditor;
 using UnityEngine;
 
 namespace SlashParadox.Essence.Editor
 {
+    /// <summary>
+    /// A type of <see cref="GUIContent"/> in use by the <see cref="MemberTypePropertyDrawer"/>.
+    /// </summary>
+    public class MemberTypeGUIContent : GUIContent
+    {
+        /// <summary>The <see cref="System.Type"/> the option relates to.</summary>
+        public readonly System.Type RegisteredType;
+
+        public MemberTypeGUIContent(System.Type type, string label)
+            : base(label)
+        {
+            RegisteredType = type;
+        }
+    }
+
+    /// <summary>
+    /// A <see cref="CustomPropertyDrawer"/> for <see cref="MemberType"/>s.
+    /// </summary>
     [CustomPropertyDrawer(typeof(MemberType))]
     [CustomPropertyDrawer(typeof(MemberType<>))]
     public class MemberTypePropertyDrawer : EssencePropertyDrawer
     {
-        private class MemberTypeGUIContent : GUIContent
-        {
-            public readonly System.Type registeredType;
-
-            public MemberTypeGUIContent(System.Type type, string label)
-                : base(label)
-            {
-                registeredType = type;
-            }
-        }
-
-        private static readonly char TypeNameSeparator = '.';
-
-        private static readonly char MenuPathSeparator = '/';
-
-        private static readonly string ClassGroupingName = "Class/";
-
-        private static readonly string StructGroupingName = "Struct/";
-
-        private static readonly string InterfaceGroupingName = "Interface/";
-        
-        private static readonly string EnumGroupingName = "Enum/";
-
-        private MemberTypeGroup _grouping;
+        private TypeGrouping _grouping;
 
         private MemberTypeFilterAttribute[] _filters;
 
-        private MemberTypeGUIContent[] filteredTypes;
-
-        private GenericMenu dropdownMenu = new GenericMenu();
+        private MemberTypeGUIContent[] _filteredTypes;
 
         private SerializedProperty _typeNameProperty;
 
         private MemberType _memberType;
 
-        private int selectedIndex = Literals.InvalidIndex;
+        private int _selectedIndex = Literals.InvalidIndex;
+        
+        /// <summary>
+        /// Caches a list of possible <see cref="System.Type"/>s a <see cref="MemberType"/> value can be. Use this ahead of any editor field to prevent constant heavy processing.
+        /// </summary>
+        /// <param name="type">The current value of the <see cref="MemberType"/>.</param>
+        /// <param name="typeIndex">The index of the <paramref name="type"/> in the options.</param>
+        /// <param name="grouping">The grouping to use for the options.</param>
+        /// <param name="filters">Filters to use for the options.</param>
+        /// <returns>Returns an array of <see cref="MemberTypeGUIContent"/> options. Use these in an editor field function.</returns>
+        public static MemberTypeGUIContent[] CacheFilteredTypeOptions(MemberType type, out int typeIndex, TypeGrouping grouping = TypeGrouping.None, IList<MemberTypeFilterAttribute> filters = null)
+        {
+            List<MemberTypeGUIContent> outContent = new List<MemberTypeGUIContent>();
+            outContent.Add(new MemberTypeGUIContent(null, "None"));
+            typeIndex = 0;
+
+            foreach (Assembly referencedAssembly in System.AppDomain.CurrentDomain.GetAssemblies())
+            {
+                GetFilteredTypesByAssembly(referencedAssembly, type, grouping, outContent, ref typeIndex, filters);
+            }
+
+            return outContent.ToArray();
+        }
+
+        /// <summary>
+        /// Creates an <see cref="EditorGUILayout"/> field for a <see cref="MemberType"/>. Gather your options using <see cref="CacheFilteredTypeOptions"/>.
+        /// </summary>
+        /// <param name="label">The displayed label.</param>
+        /// <param name="value">The current value of the <see cref="MemberType"/>.</param>
+        /// <param name="index">The index of the <paramref name="value"/> in the <see cref="options"/>. Updated to match the new index of the returned value.</param>
+        /// <param name="options">The available options for the final value.</param>
+        /// <typeparam name="T">The base type of the <see cref="MemberType"/>.</typeparam>
+        /// <returns>Returns the selected <see cref="MemberType"/>.</returns>
+        public static MemberType<T> MemberTypeLayoutField<T>(GUIContent label, MemberType<T> value, ref int index, MemberTypeGUIContent[] options)
+        {
+            // ReSharper disable once CoVariantArrayConversion
+            index = EditorGUILayout.Popup(label, index, options);
+
+            System.Type finalType = options.IsValidIndex(index) ? options[index].RegisteredType : null;
+            EditorGUILayout.LabelField(new GUIContent(finalType != null ? finalType.Name : "None"));
+
+            MemberType<T> result = new MemberType<T>(finalType, value == null || value.CanBeBaseType);
+            return result;
+        }
+
+        /// <summary>
+        /// Creates an <see cref="EditorGUILayout"/> field for a <see cref="MemberType"/>. Gather your options using <see cref="CacheFilteredTypeOptions"/>.
+        /// </summary>
+        /// <param name="label">The displayed label.</param>
+        /// <param name="value">The current value of the <see cref="MemberType"/>.</param>
+        /// <param name="index">The index of the <paramref name="value"/> in the <see cref="options"/>. Updated to match the new index of the returned value.</param>
+        /// <param name="options">The available options for the final value.</param>
+        /// <typeparam name="T">The base type of the <see cref="MemberType"/>.</typeparam>
+        /// <returns>Returns the selected <see cref="MemberType"/>.</returns>
+        public static MemberType MemberTypeLayoutField(GUIContent label, MemberType value, ref int index, MemberTypeGUIContent[] options)
+        {
+            // ReSharper disable once CoVariantArrayConversion
+            index = EditorGUILayout.Popup(label, index, options);
+
+            System.Type finalType = options.IsValidIndex(index) ? options[index].RegisteredType : null;
+            EditorGUILayout.LabelField(new GUIContent(finalType != null ? finalType.Name : "None"));
+
+            MemberType result = new MemberType(finalType);
+            return result;
+        }
+        
+        private static void GetFilteredTypesByAssembly(Assembly inAssembly, MemberType memberType, TypeGrouping grouping, List<MemberTypeGUIContent> outContent, ref int index, IList<MemberTypeFilterAttribute> filters = null)
+        {
+            if (inAssembly == null)
+                return;
+
+            foreach (System.Type assemblyType in inAssembly.GetTypes())
+            {
+                if (!assemblyType.IsVisible)
+                    continue;
+
+                if (memberType != null && !memberType.CanTypeBeSet(assemblyType, out string _))
+                    continue;
+
+                bool passedFilters = true;
+                if (filters.IsNotEmptyOrNull())
+                    foreach (MemberTypeFilterAttribute filter in filters)
+                    {
+                        if (!filter.SatisfiesFilter(assemblyType))
+                        {
+                            passedFilters = false;
+                            break;
+                        }
+                    }
+
+                if (!passedFilters)
+                    continue;
+
+                BuildTypeMenuPath(assemblyType, grouping, outContent);
+
+                if (memberType != null && assemblyType.AssemblyQualifiedName == memberType.ToString()) index = outContent.Count - 1;
+            }
+        }
+
+        private static void BuildTypeMenuPath(System.Type type, TypeGrouping grouping, List<MemberTypeGUIContent> outContent)
+        {
+            string path = EditorKit.BuildTypeMenuPath(type, grouping);
+            
+            if (!string.IsNullOrEmpty(path))
+                outContent.Add(new MemberTypeGUIContent(type, path));
+        }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
@@ -58,12 +156,12 @@ namespace SlashParadox.Essence.Editor
         protected override void OnDrawerInitialized(SerializedProperty property, GUIContent label)
         {
             MemberTypeGroupAttribute groupAttribute = fieldInfo != null ? fieldInfo.GetCustomAttribute<MemberTypeGroupAttribute>() : null;
-            _grouping = groupAttribute?.Grouping ?? MemberTypeGroup.None;
+            _grouping = groupAttribute?.Grouping ?? TypeGrouping.None;
             _filters = fieldInfo != null ? fieldInfo.GetCustomAttributes<MemberTypeFilterAttribute>().ToArray() : null;
             _typeNameProperty = property.FindPropertyRelative("assemblyQualifiedName");
             _memberType = (MemberType)fieldInfo?.GetValue(property.serializedObject.targetObject);
 
-            GetFilteredTypes();
+            _filteredTypes = CacheFilteredTypeOptions(_memberType, out _selectedIndex, _grouping, _filters);
 
             base.OnDrawerInitialized(property, label);
         }
@@ -71,122 +169,14 @@ namespace SlashParadox.Essence.Editor
         protected override void OnGUIDraw(Rect position, SerializedProperty property, GUIContent label, PropertyDrawerData data)
         {
             // ReSharper disable once CoVariantArrayConversion
-            selectedIndex = EditorGUI.Popup(position, label, selectedIndex, filteredTypes);
+            _selectedIndex = EditorGUI.Popup(position, label, _selectedIndex, _filteredTypes);
 
-            System.Type finalType = filteredTypes.IsValidIndex(selectedIndex) ? filteredTypes[selectedIndex].registeredType : null;
+            System.Type finalType = _filteredTypes.IsValidIndex(_selectedIndex) ? _filteredTypes[_selectedIndex].RegisteredType : null;
             _typeNameProperty.stringValue = finalType != null ? finalType.AssemblyQualifiedName : string.Empty;
 
             System.Type currentType = MemberType.AssemblyQualifiedStringToType(_typeNameProperty.stringValue);
             position.y += EditorGUIUtility.standardVerticalSpacing * 4.0f;
             EditorGUI.LabelField(position, new GUIContent(currentType != null ? currentType.Name : "None"));
-        }
-
-        private void GetFilteredTypes()
-        {
-            List<MemberTypeGUIContent> outContent = new List<MemberTypeGUIContent>();
-            outContent.Add(new MemberTypeGUIContent(null, "None"));
-            selectedIndex = 0;
-
-            foreach (Assembly referencedAssembly in System.AppDomain.CurrentDomain.GetAssemblies())
-            {
-                GetFilteredTypesByAssembly(referencedAssembly, outContent);
-            }
-
-            filteredTypes = outContent.ToArray();
-        }
-
-        private void GetFilteredTypesByAssembly(Assembly inAssembly, List<MemberTypeGUIContent> outContent)
-        {
-            if (inAssembly == null)
-                return;
-
-            foreach (System.Type assemblyType in inAssembly.GetTypes())
-            {
-                if (!assemblyType.IsVisible)
-                    continue;
-                
-                if (_memberType != null && !_memberType.CanTypeBeSet(assemblyType, out string _))
-                    continue;
-
-                bool passedFilters = true;
-                if (_filters.IsNotEmptyOrNull())
-                {
-                    foreach (MemberTypeFilterAttribute filter in _filters)
-                    {
-                        if (!filter.SatisfiesFilter(assemblyType))
-                        {
-                            passedFilters = false;
-                            break;
-                        }
-                    }
-                }
-
-                if (!passedFilters)
-                    continue;
-
-                BuildTypeMenuPath(assemblyType, outContent);
-
-                if (assemblyType.AssemblyQualifiedName == _typeNameProperty.stringValue)
-                {
-                    selectedIndex = outContent.Count - 1;
-                }
-            }
-        }
-
-        private void BuildTypeMenuPath(System.Type type, List<MemberTypeGUIContent> outContent)
-        {
-            if (type == null)
-                return;
-
-            switch (_grouping)
-            {
-                case MemberTypeGroup.ByInheritance:
-                {
-                    if (type.IsValueType || type.IsInterface)
-                    {
-                        outContent.Add(new MemberTypeGUIContent(type, type.FullName));
-                    }
-                    else if (type.IsClass)
-                    {
-                        string currentPath = type.FullName;
-                        System.Type currentType = type;
-                        while (currentType != null && currentType.IsClass)
-                        {
-                            currentPath = $"{currentType.FullName}/{currentPath}";
-                            currentType = currentType.BaseType;
-                        }
-
-                        outContent.Add(new MemberTypeGUIContent(type, currentPath));
-                    }
-
-                    break;
-                }
-                case MemberTypeGroup.ByNamespace:
-                {
-                    outContent.Add(new MemberTypeGUIContent(type, type.FullName?.Replace(TypeNameSeparator, MenuPathSeparator) ?? string.Empty));
-                    break;
-                }
-                case MemberTypeGroup.ByIdentity:
-                {
-                    string usedPrefix;
-                    if (type.IsClass)
-                        usedPrefix = ClassGroupingName;
-                    else if (type.IsInterface)
-                        usedPrefix = InterfaceGroupingName;
-                    else if (type.IsEnum)
-                        usedPrefix = EnumGroupingName;
-                    else
-                        usedPrefix = StructGroupingName;
-                    
-                    outContent.Add(new MemberTypeGUIContent(type, $"{usedPrefix}{type.FullName}"));
-                    break;
-                }
-                default:
-                {
-                    outContent.Add(new MemberTypeGUIContent(type, type.FullName));
-                    break;
-                }
-            }
         }
     }
 }

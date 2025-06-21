@@ -1,9 +1,9 @@
 // Copyright (c) Craig Williams, SlashParadox
 
+using SlashParadox.Essence.Kits;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using SlashParadox.Essence.Kits;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -14,16 +14,16 @@ using UnityEngine.SceneManagement;
 // Transit - Transitions scene group, but does not recreate game mode or controllers. Takes preservation tags.
 // Travel - Fully transitions scene group, with a new game mode. Takes preservation tags.
 
-namespace SlashParadox.Essence.GameUnits
+namespace SlashParadox.Essence
 {
-    public class SceneLoadParams
+    public static partial class EssenceLog
     {
-        public bool setFirstSceneAsActive;
-        
-        public Action<bool> onCompleted;
+        public static readonly Logger LogScene = new Logger(Debug.unityLogger.logHandler);
     }
+}
 
-
+namespace SlashParadox.Essence.GameFramework
+{
     /// <summary>
     /// A game singleton unit for loading and transitioning between scenes.
     /// </summary>
@@ -33,9 +33,174 @@ namespace SlashParadox.Essence.GameUnits
     /// 2. Transition: The old scenes are all unloaded, and new scenes are displayed. All game mode and controller objects persist.<br/>
     /// 3. Travel: Similar to Transition, except a new game mode is loaded. Only items with the right preservation tags persist.<br/>
     /// </remarks>
-    public class SceneUnit : PublicSingletonBehavior<SceneUnit>
+    public class SceneUnit : SingletonBehaviour<SceneUnit>
     {
-        public static async void LoadAdditiveScenes(IList<string> scenes, Action completionEvent)
+        /// <summary>
+        /// A representation of a state of scene traveling. Bind to the static states to be notified of certain processes.
+        /// </summary>
+        public sealed class TravelState
+        {
+            public delegate void TravelStateDelegate(TravelState state);
+
+            public static readonly TravelState Initialization = new TravelState(0, nameof(Initialization));
+            public static readonly TravelState LoadMainScene = new TravelState(1, nameof(LoadMainScene));
+            public static readonly TravelState LoadExtraScenes = new TravelState(2, nameof(LoadExtraScenes));
+            public static readonly TravelState LoadHolders = new TravelState(3, nameof(LoadHolders));
+            public static readonly TravelState PrepareFramework = new TravelState(4, nameof(PrepareFramework));
+            public static readonly TravelState TravelFinishHolders = new TravelState(5, nameof(TravelFinishHolders));
+            public static readonly TravelState TravelComplete = new TravelState(6, nameof(TravelComplete));
+            public static readonly TravelState TravelFailed = new TravelState(7, nameof(TravelFailed));
+
+            /// <summary>The maximum level. Use to know how many <see cref="TravelState"/>s there are.</summary>
+            public static int MaxLevel { get; private set; }
+
+            /// <summary>An event called at the start of the state.</summary>
+            public event TravelStateDelegate OnStart;
+
+            /// <summary>An event called at the end of the state.</summary>
+            public event TravelStateDelegate OnEnd;
+
+            /// <summary>The name of the <see cref="TravelState"/>.</summary>
+            public readonly string StateName;
+
+            /// <summary>The level of the <see cref="TravelState"/>. This helps indicate how far along the process is.</summary>
+            public readonly int Level;
+
+            private TravelState(int inLevel, string inName)
+            {
+                StateName = inName;
+                Level = inLevel;
+
+                if (MaxLevel < Level)
+                    MaxLevel = Level;
+            }
+
+            public override bool Equals(object obj)
+            {
+                return ReferenceEquals(this, obj) || (obj is TravelState other && Equals(other));
+            }
+
+            public override int GetHashCode()
+            {
+                return HashCode.Combine(StateName, Level);
+            }
+
+            public override string ToString()
+            {
+                return StateName;
+            }
+
+            private bool Equals(TravelState other)
+            {
+                return StateName == other.StateName && Level == other.Level;
+            }
+
+            internal void InvokeStart()
+            {
+                CurrentTravelState = this;
+                OnStart?.Invoke(this);
+            }
+
+            internal void InvokeEnd()
+            {
+                OnEnd?.Invoke(this);
+            }
+
+            public static bool operator >(TravelState a, TravelState b)
+            {
+                if (a == null)
+                    return false;
+
+                return b == null || a.Level > b.Level;
+            }
+
+            public static bool operator <(TravelState a, TravelState b)
+            {
+                if (a == null)
+                    return false;
+
+                return b != null && a.Level < b.Level;
+            }
+
+            public static bool operator >=(TravelState a, TravelState b)
+            {
+                if (a == null)
+                    return b == null;
+
+                return b == null || a.Level >= b.Level;
+            }
+
+            public static bool operator <=(TravelState a, TravelState b)
+            {
+                if (a == null)
+                    return true;
+
+                return b != null && a.Level <= b.Level;
+            }
+
+            public static bool operator ==(TravelState a, TravelState b)
+            {
+                if (ReferenceEquals(a, null))
+                    return ReferenceEquals(b, null);
+
+                return !ReferenceEquals(b, null) && a.Level == b.Level;
+            }
+
+            public static bool operator !=(TravelState a, TravelState b)
+            {
+                return !(a == b);
+            }
+        }
+
+        /// <summary>The currently active <see cref="TravelState"/>.</summary>
+        public static TravelState CurrentTravelState { get; private set; }
+
+        /// <summary>Scenes that were asked to be loaded during travel.</summary>
+        private readonly HashSet<string> _travelAdditiveScenes = new HashSet<string>();
+
+        /// <summary>The primary scene to load during travel.</summary>
+        private string _travelTargetScene;
+
+        /// <summary>
+        /// Begins travel to a new scene. This indicates a complete wipe of current game mode
+        /// </summary>
+        /// <param name="inTargetScene"></param>
+        public static void BeginTravel(string inTargetScene)
+        {
+            if (CurrentSingleton)
+                CurrentSingleton.OnBeginTravel(inTargetScene);
+            else
+                LogKit.ThrowNullIf(false, $"There is no active {nameof(SceneUnit)}! Cannot begin traveling to scene {inTargetScene}!");
+        }
+
+        /// <summary>
+        /// Checks if the game is currently traveling to a new scene.
+        /// </summary>
+        /// <returns>Returns if traveling to a new scene.</returns>
+        public static bool IsTraveling()
+        {
+            return CurrentTravelState != null;
+        }
+
+        /// <summary>
+        /// Appends scenes to load additively after the <see cref="_travelTargetScene"/> finishes loading. Only callable between beginning travel and just after the initial scene loads.
+        /// </summary>
+        /// <param name="inScenes">The scenes to add.</param>
+        /// <returns>Returns if the scenes were appended.</returns>
+        public static bool AddTravelScenes(ICollection<string> inScenes)
+        {
+            if (inScenes.IsEmptyOrNull() || !CurrentSingleton || !IsTraveling() || CurrentTravelState.Level >= TravelState.LoadExtraScenes.Level)
+                return false;
+
+            foreach (string scene in inScenes)
+            {
+                CurrentSingleton._travelAdditiveScenes.Add(scene);
+            }
+
+            return true;
+        }
+
+        public static async Awaitable LoadAdditiveScenes(ICollection<string> scenes, Action completionEvent)
         {
             foreach (string scene in scenes)
             {
@@ -45,23 +210,133 @@ namespace SlashParadox.Essence.GameUnits
 
             completionEvent?.Invoke();
         }
-        
+
         public async Task<bool> LoadSceneGroupAsync(AssetReferenceT<SceneGroup> sceneGroupRef, SceneLoadParams loadParams)
         {
-            Task<bool> result = LoadSceneGroupAsync(sceneGroupRef, loadParams.setFirstSceneAsActive);
+            Task<bool> result = LoadSceneGroupAsync(sceneGroupRef, loadParams.UpdateActiveScene);
             await result;
 
-            loadParams.onCompleted?.Invoke(result.Result);
+            // loadParams.onCompleted?.Invoke(result.Result);
             return result.Result;
         }
 
         public async Task<bool> LoadSceneGroupAsync(SceneGroup sceneGroup, SceneLoadParams loadParams)
         {
-            Task<bool> result = LoadSceneGroupAsync(sceneGroup, loadParams.setFirstSceneAsActive);
+            Task<bool> result = LoadSceneGroupAsync(sceneGroup, loadParams.UpdateActiveScene);
             await result;
 
-            loadParams.onCompleted?.Invoke(result.Result);
+            //   loadParams.onCompleted?.Invoke(result.Result);
             return result.Result;
+        }
+
+        /// <summary>
+        /// Begins traveling to a new scene.
+        /// </summary>
+        /// <param name="inTargetScene">The scene to travel to.</param>
+        private async Awaitable OnBeginTravel(string inTargetScene)
+        {
+            if (IsTraveling())
+            {
+                LogKit.Log(EssenceLog.LogScene, LogType.Error, nameof(OnBeginTravel), $"Cannot travel to scene {inTargetScene}. Already traveling to scene {_travelTargetScene}!", this);
+                return;
+            }
+
+            int sceneIndex = SceneUtility.GetBuildIndexByScenePath(inTargetScene);
+            if (sceneIndex < 0)
+            {
+                LogKit.ThrowNullIf(false, $"Cannot begin travel to scene {inTargetScene}. The scene does not exist!");
+                return;
+            }
+
+            if (destroyCancellationToken.IsCancellationRequested)
+                return;
+
+            _travelTargetScene = inTargetScene;
+
+            TravelState.Initialization.InvokeStart();
+            TravelState.Initialization.InvokeEnd();
+            TravelState.LoadMainScene.InvokeStart();
+
+            // Travel to the main scene.
+            await SceneManager.LoadSceneAsync(_travelTargetScene, LoadSceneMode.Single);
+            await Awaitable.NextFrameAsync(destroyCancellationToken);
+
+            if (destroyCancellationToken.IsCancellationRequested)
+            {
+                CleanupTravel();
+                return;
+            }
+
+            // Once the main scene is loaded, the game manager will handle creating game mode variables. After this, gather scene settings and load additive scenes.
+            SceneSettings sceneSettings = GameManager.CurrentSingleton?.CurrentSceneSettings;
+            if (sceneSettings)
+                AddTravelScenes(sceneSettings.AdditiveScenes);
+
+            TravelState.LoadMainScene.InvokeEnd();
+
+            // Load any additive scenes that have been requested.
+            TravelState.LoadExtraScenes.InvokeStart();
+            await LoadAdditiveScenes(_travelAdditiveScenes, null);
+            await Awaitable.NextFrameAsync(destroyCancellationToken);
+
+            if (destroyCancellationToken.IsCancellationRequested)
+            {
+                CleanupTravel();
+                return;
+            }
+
+            TravelState.LoadExtraScenes.InvokeEnd();
+            TravelState.LoadHolders.InvokeStart();
+
+            // TODO - Wait for any loading holders.
+
+            if (destroyCancellationToken.IsCancellationRequested)
+            {
+                CleanupTravel();
+                return;
+            }
+
+            TravelState.LoadHolders.InvokeEnd();
+
+            TravelState.PrepareFramework.InvokeStart();
+            TravelState.PrepareFramework.InvokeEnd();
+
+            TravelState.TravelFinishHolders.InvokeStart();
+
+            // TODO - Wait for any travel holders
+
+            if (destroyCancellationToken.IsCancellationRequested)
+            {
+                CleanupTravel();
+                return;
+            }
+
+            TravelState.TravelFinishHolders.InvokeEnd();
+
+            TravelState.TravelComplete.InvokeStart();
+            CleanupTravel();
+            TravelState.TravelComplete.InvokeEnd();
+        }
+
+        /// <summary>
+        /// Cleans up a scene travel at the end.
+        /// </summary>
+        private void CleanupTravel()
+        {
+            // Failure state.
+            bool bFailed = CurrentTravelState != TravelState.TravelComplete;
+            if (bFailed)
+                LogKit.Log(EssenceLog.LogScene, LogType.Error, nameof(CleanupTravel), $"Failed to travel to scene [{_travelTargetScene}]!");
+            
+            CurrentTravelState = null;
+            _travelTargetScene = null;
+            _travelAdditiveScenes.Clear();
+            
+            if (bFailed)
+            {
+                TravelState.TravelFailed.InvokeStart();
+                TravelState.TravelFailed.InvokeEnd();
+            }
         }
 
         private async Task<bool> LoadSceneGroupAsync(AssetReferenceT<SceneGroup> sceneGroupRef, bool setFirstSceneAsActive)
@@ -102,7 +377,7 @@ namespace SlashParadox.Essence.GameUnits
         {
             if (scenes.IsEmptyOrNull() || this.ShouldCancelTasks())
                 return false;
-            
+
             bool bSuccess = true;
             Scene? firstLoadedScene = null;
             foreach (string scene in scenes)
@@ -119,7 +394,7 @@ namespace SlashParadox.Essence.GameUnits
 
                 Task<Scene> loadTask = LoadSceneAsync(scene);
                 await loadTask;
-                
+
                 if (!loadTask.Result.IsValid())
                     continue;
 
@@ -128,13 +403,13 @@ namespace SlashParadox.Essence.GameUnits
 
             if (!setFirstSceneAsActive || firstLoadedScene == null)
                 return bSuccess;
-            
+
             SceneManager.SetActiveScene(firstLoadedScene.Value);
             LogKit.Log(Loggers.LogScene, nameof(LoadScenePathsAsync), $"[{firstLoadedScene.Value.name}] set as active scene.");
 
             return bSuccess;
         }
-        
+
         /// <summary>
         /// Loads a single path to a <see cref="Scene"/>.
         /// </summary>
@@ -147,17 +422,17 @@ namespace SlashParadox.Essence.GameUnits
                 LogKit.Log(Loggers.LogScene, LogType.Error, nameof(LoadSceneAsync), "Cannot load null scene!");
                 return new Scene();
             }
-            
+
             AsyncOperation handle = SceneManager.LoadSceneAsync(scene, LoadSceneMode.Additive);
             await handle;
-            
+
             Scene loadedScene = SceneManager.GetSceneByPath(scene);
             if (loadedScene.IsValid())
             {
                 LogKit.Log(Loggers.LogScene, nameof(LoadSceneAsync), $"Scene Path [{scene}] load successfully as Scene [{loadedScene.name}].");
                 return loadedScene;
             }
-            
+
             LogKit.Log(Loggers.LogScene, LogType.Warning, nameof(LoadSceneAsync), $"Scene Path [{scene}] failed to load.");
             return new Scene();
         }
@@ -187,7 +462,7 @@ namespace SlashParadox.Essence.GameUnits
 
                 Task<SceneInstance> loadTask = LoadSceneAssetReferenceAsync(scene);
                 await loadTask;
-                
+
                 if (!loadTask.Result.Scene.IsValid())
                     continue;
 
@@ -196,7 +471,7 @@ namespace SlashParadox.Essence.GameUnits
 
             if (!setFirstSceneAsActive || firstLoadedScene == null)
                 return bSuccess;
-            
+
             SceneManager.SetActiveScene(firstLoadedScene.Value);
             LogKit.Log(Loggers.LogScene, nameof(LoadSceneAssetReferencesAsync), $"[{firstLoadedScene.Value.name}] set as active scene.");
 
@@ -215,7 +490,7 @@ namespace SlashParadox.Essence.GameUnits
                 LogKit.Log(Loggers.LogScene, LogType.Error, nameof(LoadSceneAssetReferenceAsync), "Cannot load null scene!");
                 return new SceneInstance();
             }
-            
+
             AsyncOperationHandle<SceneInstance> handle = scene.LoadSceneAsync(LoadSceneMode.Additive);
             if (!handle.IsValid())
             {
@@ -229,7 +504,7 @@ namespace SlashParadox.Essence.GameUnits
                 LogKit.Log(Loggers.LogScene, nameof(LoadSceneAssetReferencesAsync), $"{nameof(AssetReference)} [{scene}] load successfully as Scene [{handle.Result.Scene.name}].");
                 return handle.Result;
             }
-            
+
             LogKit.Log(Loggers.LogScene, LogType.Warning, nameof(LoadSceneAssetReferencesAsync), $"{nameof(AssetReference)} [{scene}] failed to load.");
             return new SceneInstance();
         }

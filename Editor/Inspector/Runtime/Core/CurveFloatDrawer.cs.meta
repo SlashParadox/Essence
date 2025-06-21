@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: 4532bb2fe1e71554e86ebebf1a396458
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - defaultVisualTree: {instanceID: 0}
+  - CurveElementAsset: {fileID: 9197481963319205126, guid: 0dca65a1a6aae3f4d8e15ef20ba3cdfe, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

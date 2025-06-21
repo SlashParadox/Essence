@@ -1,14 +1,36 @@
 // Copyright (c) Craig Williams, SlashParadox
 
+#nullable enable
 using System;
+using System.Collections.Generic;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace SlashParadox.Essence.Kits
 {
+    public class ReferenceEqualityComparer : EqualityComparer<object>
+    {
+        public override bool Equals(object x, object y)
+        {
+            return ReferenceEquals(x, y);
+        }
+
+        public override int GetHashCode(object obj)
+        {
+            return RuntimeHelpers.GetHashCode(obj);
+        }
+    }
+
     /// <summary>
     /// A helper class for dealing with <see cref="Type"/>s.
     /// </summary>
-    public static class TypeKit
+    public static partial class TypeKit
     {
+        static TypeKit()
+        {
+            InitializeDeepCopy();
+        }
+
         /// <summary>
         /// Checks if a <see cref="Type"/> matches or is a subclass of another <see cref="Type"/>.
         /// </summary>
@@ -69,6 +91,16 @@ namespace SlashParadox.Essence.Kits
                 return true;
 
             return ImplementsInterface(type, otherType);
+        }
+
+        public static Type GetTypeSafe<T>(this T obj)
+        {
+            return obj == null ? null! : obj.GetType();
+        }
+
+        public static bool HasDefaultConstructor(this Type? type)
+        {
+            return type != null && !type.IsValueType && type.GetConstructor(ReflectionKit.DefaultFlags, null, Type.EmptyTypes, null) != null;
         }
     }
 }
